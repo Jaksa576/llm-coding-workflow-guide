@@ -37,16 +37,18 @@ The main tradeoff is setup overhead. The workflow adds structure so later implem
 
 1. Create the GitHub repo and local Windows workspace.
 2. Create the ChatGPT Project and add starter instructions.
-3. Configure the Codex project and local environment.
-4. Define the project with ChatGPT.
-5. Generate and install project-specific ChatGPT instructions.
-6. Generate the core repo docs.
-7. Copy the docs into the local repo and commit/push.
-8. Bootstrap the project with Codex.
-9. Review the bootstrap and first deploy/run.
-10. Start the main implementation loop.
-11. Repeat: plan work -> generate handoff -> implement -> docs/state update -> QA -> merge or patch.
-12. Close out campaigns and start a new chat for the next phase.
+3. Add the compact workflow primer.
+4. Connect or confirm GitHub repo access for source-of-truth checks.
+5. Configure the Codex project and local environment.
+6. Define the project with ChatGPT.
+7. Generate and install project-specific ChatGPT instructions.
+8. Generate the core repo docs.
+9. Copy the docs into the local repo and commit/push.
+10. Bootstrap the project with Codex.
+11. Review the bootstrap and first deploy/run.
+12. Start the main implementation loop.
+13. Repeat: plan work -> generate handoff -> implement -> docs/state update -> QA -> merge or patch.
+14. Close out campaigns and start a new chat for the next phase.
 
 Most time is spent in the implementation loop, not setup.
 
@@ -86,7 +88,7 @@ I use ChatGPT for planning and Codex or another coding agent for implementation.
 
 Default environment: Windows-native workflow with PowerShell. Do not assume WSL unless I explicitly request it.
 
-When current repo state matters, inspect the latest repo docs or ask me to provide the smallest specific missing input. Do not rely on memory or prior chat assumptions.
+When current repo state matters, inspect the project repo through the configured GitHub connector at the target branch first. If connector access is unavailable, ask me to provide only the smallest specific missing file or input. Do not rely on memory or prior chat assumptions.
 
 Prefer step-by-step guidance, lean Codex handoffs, reviewable slices, clear stop conditions, documentation delta requirements, and final state packets from coding agents.
 ```
@@ -106,6 +108,38 @@ This keeps ChatGPT aware of the workflow without turning every Project Instructi
 
 Use the primer file included in the bundle: `llm-workflow-primer.md`.
 
+## Stage 1B - Configure GitHub source-of-truth access
+
+After adding the primer, connect or confirm access to the project's GitHub repo if your ChatGPT environment supports it. The connector is not the source of truth by itself; it is the access path to the repo docs.
+
+Record the default target branch in the Project Instructions or in your first source-of-truth check. After the project is connected to GitHub, normal prompts should clarify branch context only when needed. When current state matters, ChatGPT should inspect repo docs at the target branch before asking you to paste docs.
+
+If connector access is unavailable, expired, or missing a file, fall back to the smallest manual paste or upload needed. Do not paste secrets or environment variable values.
+
+```md
+Confirm GitHub source-of-truth access for this project.
+
+
+Target branch for source-of-truth checks:
+{{What branch should ChatGPT inspect?}}
+
+Please verify whether you can inspect these files from the configured GitHub repo at the target branch:
+- AGENTS.md
+- docs/product.md
+- docs/architecture.md
+- docs/roadmap.md
+- docs/current-task.md
+- active docs/campaigns/*.md if relevant
+
+Rules:
+- Inspect the target branch before using prior chat state.
+- Treat repo docs as authoritative.
+- Treat state packets as transition notes only.
+- If you cannot access a needed file, ask me for only that file.
+- If the branch is unmerged, do not assume main includes its changes.
+- If docs conflict, stop and call out the conflict before recommending next steps.
+```
+
 ## Stage 2 - Configure Codex before handoffs
 
 Configure Codex before any Codex handoff is created. Point Codex at the local repo path. Confirm it can see the repo, the branch is correct, Git status is clean or intentionally empty, and worktree/local environment settings are configured.
@@ -113,11 +147,9 @@ Configure Codex before any Codex handoff is created. Point Codex at the local re
 Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.
 
 
-
-
 ## Stage 3 - Define the project
 
-Paste this into the ChatGPT Project. Fill in the double-brace prompts with your project idea, constraints, repo URL, and local path.
+Paste this into the ChatGPT Project. Fill in the double-brace prompts with your project idea, constraints, and local path.
 
 ```md
 Help me define a new software project for an LLM-assisted coding workflow.
@@ -137,8 +169,6 @@ First useful version must do:
 Known constraints:
 {{List important constraints, assumptions, or preferences, or write "none"}}
 
-Repository:
-{{Paste the GitHub repo URL}}
 
 Local repo path:
 {{What is the local repo path?}}
@@ -170,8 +200,6 @@ Create concise ChatGPT Project Instructions for this software project.
 Project name:
 {{What is the project name?}}
 
-Repository:
-{{Paste the GitHub repo URL}}
 
 Local repo path:
 {{What is the local repo path?}}
@@ -188,7 +216,7 @@ The ChatGPT Project will include the compact LLM workflow primer as a source fil
 Instructions architecture:
 - Project Instructions should be app-specific and concise.
 - The workflow primer covers campaign/slice/patch workflow, documentation freshness, state packets, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.
-- Repo docs are the source of truth for product, architecture, roadmap, and current task.
+- Repo docs are the source of truth for product, architecture, roadmap, and current task. When connector access is available, inspect repo docs at the target branch before asking for pasted docs.
 
 Environment:
 - Default to Windows-native workflow.
@@ -221,8 +249,6 @@ Create the initial source-of-truth repo docs for this project.
 Project name:
 {{What is the project name?}}
 
-Repository:
-{{Paste the GitHub repo URL}}
 
 Local repo path:
 {{What is the local repo path?}}
@@ -289,7 +315,7 @@ git push origin main
 Bootstrap creates the first working shell, validation path, and optional first deploy/run. It does not build the full MVP unless the project is tiny. Use ChatGPT to generate the Codex handoff, then paste the result into Codex.
 
 ```md
-Before creating the handoff, check the current repo-doc context if available.
+Before creating the handoff, inspect repo docs at the target branch through the configured GitHub connector if available. If connector access is unavailable, ask for only the smallest missing doc.
 
 Create a lean Codex-ready bootstrap handoff.
 
@@ -360,13 +386,13 @@ Please do the following:
 5. if ready, recommend the first implementation campaign or standalone slice
 6. if ready, summarize what the next work item should accomplish
 
-Use the state packet as orientation only. If current repo state matters, inspect the latest repo docs first or ask me for the specific missing files.
+Use the state packet as orientation only. If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable.
 ```
 
 
 # Main implementation loop
 
-Start a new ChatGPT chat at the beginning of a new campaign or major phase. Use the state packet from the most recent Codex report as a transition note, not as source of truth. Ask ChatGPT to inspect repo docs when current state matters.
+Start a new ChatGPT chat at the beginning of a new campaign or major phase. Use the state packet from the most recent Codex report as a transition note, not as source of truth. Ask ChatGPT to inspect repo docs at the target branch when current state matters.
 
 ## Loop Step A - Start or refresh the ChatGPT chat
 
@@ -376,13 +402,14 @@ Use this at the start of a new campaign, after campaign closeout, or whenever th
 ```md
 I am starting a new ChatGPT chat for an existing project.
 
+
 Target branch:
 {{What is the target branch?}}
 
 Most recent Codex state packet:
 {{Paste the latest state packet if you are using state packets in your workflow, or write "none"}}
 
-Please re-establish context by inspecting or asking me for:
+Please re-establish context by inspecting repo docs at the target branch. If connector access is unavailable, ask me for only the smallest missing file from:
 - AGENTS.md
 - docs/product.md
 - docs/architecture.md
@@ -394,7 +421,7 @@ Rules:
 - Treat repo docs as authoritative.
 - Treat the state packet as a transition note only.
 - Do not rely on memory from prior chats.
-- If you cannot inspect a needed file, ask me for only that file.
+- If you cannot inspect a needed file through the connector, ask me for only that file.
 
 After re-establishing context, help me with:
 {{What do you want ChatGPT to help with?}}
@@ -407,7 +434,7 @@ Use this for a campaign, a standalone slice, or a patch. Campaign planning is pa
 
 
 ```md
-Before planning, do a fresh source-of-truth check using the latest repo docs.
+Before planning, do a fresh source-of-truth check using repo docs at the target branch.
 
 Work mode:
 {{Which work type do you want to do? (Campaign, Single slice, or Patch)}}
@@ -418,7 +445,7 @@ Target branch:
 Current objective:
 {{Provide the current objective you want to accomplish and include any recent context or constraints that may be relevant}}
 
-Please inspect or ask me for:
+Please inspect the configured GitHub repo at the target branch, or ask me for only the smallest missing file if connector access is unavailable:
 - AGENTS.md
 - docs/product.md
 - docs/architecture.md
@@ -458,7 +485,7 @@ The plan should support large swaths when appropriate, but keep each implementat
 Use this for a campaign slice, standalone slice, or patch. The prompt intentionally does not ask for the repo URL because the ChatGPT Project Instructions should already contain it. Branch context still matters.
 
 ```md
-Before creating the handoff, do a fresh source-of-truth check using the latest repo docs.
+Before creating the handoff, do a fresh source-of-truth check using repo docs at the target branch.
 
 Work type:
 {{What type of handoff is this? (Campaign slice, Standalone slice, or Patch)}}
@@ -475,7 +502,7 @@ Work item to implement:
 Task context:
 {{Add only context Codex needs beyond the repo docs, or write "none"}}
 
-Please inspect or ask me for:
+Please inspect the configured GitHub repo at the target branch, or ask me for only the smallest missing file if connector access is unavailable:
 - AGENTS.md
 - docs/product.md
 - docs/architecture.md
@@ -559,7 +586,7 @@ Please do the following:
 6. recommend one of: merge, narrow patch, revise plan/campaign, or abandon branch
 7. if a patch is needed, create a lean Codex-ready patch handoff
 
-Use the state packet as orientation only. If current repo state matters, inspect the latest repo docs first or ask me for the specific missing files. If the branch is unmerged, do not assume main includes the changes unless I say it was merged.
+Use the state packet as orientation only. If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable. If the branch is unmerged, do not assume main includes the changes unless I say it was merged.
 ```
 
 
@@ -634,7 +661,7 @@ Most recent state packet:
 Remaining issues:
 {{List remaining issues, or write "none"}}
 
-Please do a fresh source-of-truth check using:
+Please do a fresh source-of-truth check using repo docs at the target branch. If connector access is unavailable, ask me for only the smallest missing file from:
 - AGENTS.md
 - docs/product.md
 - docs/architecture.md
@@ -706,7 +733,7 @@ Reason for audit:
 Goal:
 Audit and update project documentation so the hot-path docs accurately reflect the current project state.
 
-Read first:
+Read first from repo docs at the target branch:
 - AGENTS.md
 - docs/product.md
 - docs/architecture.md
@@ -751,13 +778,14 @@ Before answering, do a fresh source-of-truth check for this project.
 Current situation:
 {{Briefly describe why you need a source-of-truth check}}
 
+
 Target branch:
 {{What is the target branch?}}
 
 Recent state packet, if available:
 {{Paste the latest state packet if you are using state packets in your workflow, or write "none"}}
 
-Please inspect or ask me for the latest versions of:
+Please inspect repo docs at the target branch for the latest versions of:
 - AGENTS.md
 - docs/product.md
 - docs/architecture.md
@@ -769,7 +797,7 @@ Rules:
 - Do not rely on memory or prior chat assumptions.
 - Treat repo docs as authoritative.
 - Treat the state packet as a transition note, not a source of truth.
-- If you cannot access the latest repo files, ask me to paste or upload only the specific missing files.
+- If connector access is unavailable or a file is missing, ask me to paste or upload only the specific missing files.
 - If the branch is unmerged, do not assume main includes the branch changes.
 - If docs conflict, call out the conflict before making recommendations.
 
@@ -786,11 +814,12 @@ After the source-of-truth check, answer my request:
 5. The state packet is a transition note, not a source of truth.
 6. Keep hot context small: `AGENTS.md`, product, architecture, roadmap, current-task, and the active campaign doc.
 7. Use campaigns for large swaths of work and patches for narrow fixes.
-8. Configure ChatGPT and Codex before relying on them.
-9. Use Windows + PowerShell by default.
-10. Keep Codex worktree setup in Codex configuration or helper scripts, not normal handoffs.
-11. Stop when docs conflict.
-12. Archive old handoffs, obsolete campaign docs, long slice logs, and stale instructions.
+8. Configure ChatGPT, GitHub repo access, and Codex before relying on them.
+9. Inspect repo docs through the configured GitHub connector before asking for pasted docs when current state matters.
+10. Use Windows + PowerShell by default.
+11. Keep Codex worktree setup in Codex configuration or helper scripts, not normal handoffs.
+12. Stop when docs conflict.
+13. Archive old handoffs, obsolete campaign docs, long slice logs, and stale instructions.
 
 # Appendix A - ChatGPT Project workflow primer
 
@@ -813,7 +842,9 @@ Assume a Windows-native workflow with PowerShell unless the user explicitly says
 
 ## Source-of-truth docs
 
-When current state matters, inspect or ask for the latest versions of:
+When current state matters, inspect the project repo through the configured GitHub connector at the target branch first. If connector access is unavailable, ask for only the smallest missing file or doc needed to continue.
+
+Core docs to inspect:
 
 - `AGENTS.md`
 - `docs/product.md`
@@ -828,7 +859,7 @@ Do not rely on memory or prior chat assumptions when repo state matters. If docs
 
 Use the same loop for most work:
 
-1. Refresh current state.
+1. Refresh current state from repo docs on the target branch.
 2. Plan a campaign, slice, or patch.
 3. Generate a lean Codex handoff.
 4. Codex implements, validates, updates docs, commits, and reports back.
@@ -865,8 +896,7 @@ The state packet is not a source of truth. It is a transition note that helps th
 
 ## ChatGPT behavior
 
-Start with the recommendation. Focus on what the user should do next. Prefer reviewable slices. Push back on unclear scope, overengineering, generic product drift, stale docs, and unnecessary AI dependencies.
-
+Start with the recommendation. Focus on what the user should do next. Prefer reviewable slices. Use the configured GitHub connector before asking for pasted docs when current state matters. Push back on unclear scope, overengineering, generic product drift, stale docs, and unnecessary AI dependencies.
 ```
 
 ---
@@ -885,7 +915,7 @@ Start with the recommendation. Focus on what the user should do next. Prefer rev
 - **Documentation delta:** The final-report section explaining which docs changed and why.
 - **State packet:** A compact final-report summary for the next ChatGPT session. It is not a source of truth.
 - **Docs health check:** A docs-only audit to align current-task, roadmap, architecture, and campaign status.
-- **Source-of-truth check:** A deliberate refresh using the latest repo docs before planning, handoffs, QA, or strategy decisions.
+- **Source-of-truth check:** A deliberate refresh using repo docs at the target branch before planning, handoffs, QA, or strategy decisions.
 - **Prompt manager:** A saved-prompt library for reusable prompts. It reduces typing, but does not replace repo docs or project instructions.
 - **Worktree:** A separate working directory connected to the same Git repo, useful for isolated branches.
 
@@ -1072,7 +1102,6 @@ Use short, plain-language questions inside the double braces. The placeholder sh
 
 ```text
 {{What is the project name?}}
-{{Paste the GitHub repo URL}}
 {{What is the local repo path?}}
 {{What is the target branch?}}
 {{Paste the active campaign doc, or write "none"}}
@@ -1131,7 +1160,7 @@ Read first:
 - active campaign doc, if applicable: {{What is the active campaign doc path, or write "not applicable"?}}
 
 Readiness gate:
-Before coding, confirm the source-of-truth docs agree on the active task. Stop and report any conflict.
+Before coding, confirm the source-of-truth docs from the target branch agree on the active task. Stop and report any conflict.
 
 Context:
 {{Add only context Codex needs beyond the repo docs, or write "none"}}
