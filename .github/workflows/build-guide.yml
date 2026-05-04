@@ -1,0 +1,42 @@
+name: Build guide HTML
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'llm_coding_workflow_guide.md'
+      - 'llm-workflow-primer.md'
+      - 'tools/render_guide.py'
+      - 'tools/validate_guide.py'
+      - '.github/workflows/build-guide.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-guide:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Render guide HTML
+        run: python tools/render_guide.py
+
+      - name: Validate guide HTML
+        run: python tools/validate_guide.py
+
+      - name: Commit generated guide HTML
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Regenerate guide HTML'
+          file_pattern: llm_coding_workflow_guide.html
