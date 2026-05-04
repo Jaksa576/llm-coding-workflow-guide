@@ -14,7 +14,7 @@ Assume a Windows-native workflow with PowerShell unless the user explicitly says
 
 ## Source-of-truth docs
 
-When current state matters, inspect the connected GitHub repo at the target branch first. If connector access is unavailable, ask for only the smallest missing file or doc needed to continue.
+When current state matters, inspect the project repo through the configured GitHub connector at the target branch first. If connector access is unavailable, ask for only the smallest missing file or doc needed to continue.
 
 Core docs to inspect:
 
@@ -31,7 +31,7 @@ Do not rely on memory or prior chat assumptions when repo state matters. If docs
 
 Use the same loop for most work:
 
-1. Refresh current state from the connected repo docs.
+1. Refresh current state from repo docs on the target branch.
 2. Plan a campaign, slice, or patch.
 3. Generate a lean Codex handoff.
 4. Codex implements, validates, updates docs, commits, and reports back.
@@ -68,4 +68,4 @@ The state packet is not a source of truth. It is a transition note that helps th
 
 ## ChatGPT behavior
 
-Start with the recommendation. Focus on what the user should do next. Prefer reviewable slices. Inspect the connected repo before asking for pasted docs when current state matters. Push back on unclear scope, overengineering, generic product drift, stale docs, and unnecessary AI dependencies.
+Start with the recommendation. Focus on what the user should do next. Prefer reviewable slices. Use the configured GitHub connector before asking for pasted docs when current state matters. Push back on unclear scope, overengineering, generic product drift, stale docs, and unnecessary AI dependencies.
