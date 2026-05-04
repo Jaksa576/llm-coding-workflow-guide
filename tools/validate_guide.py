@@ -2,7 +2,7 @@
 """Validate the rendered LLM Coding Workflow Guide HTML.
 
 This script checks the static behaviors that are practical to validate in CI.
-Browser-only behaviors are represented by checking the required DOM hooks and JS.
+Browser-only behaviors are represented by checking the required DOM hooks and JS behavior markers.
 """
 from __future__ import annotations
 
@@ -91,8 +91,15 @@ def main() -> int:
     check("llm_coding_workflow_diagram.png" in html, "diagram uses external PNG reference", failures)
 
     script = "\n".join(parser.scripts)
-    for snippet in ["navigator.clipboard.writeText", "IntersectionObserver", "filterNav", "placeTooltip"]:
-        check(snippet in script, f"script includes {snippet}", failures)
+    behavior_checks = {
+        "copy button clipboard behavior": ["navigator.clipboard.writeText", "copy-btn"],
+        "sidebar filter behavior": ["navSearch", "search-hidden", "data-nav"],
+        "collapsible navigation controls": ["expandNav", "collapseNav", "nav-group"],
+        "tooltip placement behavior": ["floating-tooltip", "getBoundingClientRect", "term"],
+        "active section observer behavior": ["IntersectionObserver", "active"],
+    }
+    for message, snippets in behavior_checks.items():
+        check(all(snippet in script for snippet in snippets), f"script includes {message}", failures)
 
     node = subprocess.run(["bash", "-lc", "command -v node"], capture_output=True, text=True)
     if node.returncode == 0:
