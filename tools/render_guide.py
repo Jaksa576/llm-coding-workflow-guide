@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MD = ROOT / "llm_coding_workflow_guide.md"
 OUT = ROOT / "llm_coding_workflow_guide.html"
 TITLE = "LLM Coding Workflow Guide"
+GENERATED_NOTE = "This HTML guide is generated from the Markdown source by GitHub Actions."
 
 GROUPS = [
     ("Start here", ["LLM Coding Workflow Guide", "Purpose", "Why this workflow works", "Quick start"], True),
@@ -249,6 +250,7 @@ def main() -> int:
     css = extract_style(old_html)
     body, headings = parse_markdown(markdown)
     nav = build_nav(headings)
+    generated_note_html = f'<div class="callout"><strong>Generated guide:</strong> {html.escape(GENERATED_NOTE)}</div>'
     document = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -270,6 +272,7 @@ def main() -> int:
 <nav id="nav">{nav}</nav>
 </aside>
 <main class="content" id="content">
+{generated_note_html}
 {body}
 </main>
 </div>
