@@ -1,0 +1,181 @@
+name: Apply approved guide update v2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Apply approved Markdown updates
+        shell: python
+        run: |
+          from pathlib import Path
+          import base64
+          import re
+
+          guide_path = Path("llm_coding_workflow_guide.md")
+          primer_path = Path("llm-workflow-primer.md")
+
+          guide = guide_path.read_text(encoding="utf-8")
+          primer = primer_path.read_text(encoding="utf-8")
+
+          def decode(value: str) -> str:
+              return base64.b64decode(value).decode("utf-8")
+
+          STAGE2A = decode("CiMjIFN0YWdlIDJBIC0gT3B0aW9uYWwgQ29kZXggd29ya3RyZWUgc2V0dXAgYW5kIGNsZWFudXAgc2NyaXB0cwoKRm9yIHByb2plY3RzIHRoYXQgdXNlIENvZGV4IHdvcmt0cmVlcywga2VlcCByZXBlYXRhYmxlIHNldHVwIGFuZCBjbGVhbnVwIGxvZ2ljIGluIHJlcG8gc2NyaXB0cyBpbnN0ZWFkIG9mIHJlcGVhdGluZyBpdCBpbiBldmVyeSBoYW5kb2ZmLgoKVXNlIHNldHVwIHNjcmlwdHMgdG8gcHJlcGFyZSB0aGUgd29ya3RyZWUgYmVmb3JlIENvZGV4IHN0YXJ0cyBjb2RpbmcuIFVzZSBjbGVhbnVwIHNjcmlwdHMgdG8gcmVtb3ZlIGRpc3Bvc2FibGUgZ2VuZXJhdGVkIGZvbGRlcnMgYWZ0ZXIgYSB3b3JrdHJlZSBpcyBmaW5pc2hlZCBvciBiZWZvcmUgYSBmcmVzaCBpbnN0YWxsLgoKR29vZCBzZXR1cCBzY3JpcHRzIHNob3VsZDoKCi0gcnVuIGZyb20gdGhlIHJlcG8gcm9vdAotIHNob3cgdG9vbCB2ZXJzaW9ucwotIGZldGNoIGFuZCBwcnVuZSBHaXQgcmVmcwotIHN0b3AgaWYgdGhlIHdvcmt0cmVlIGFwcGVhcnMgc3RhbGUsIGRldGFjaGVkIGZyb20ga25vd24gYnJhbmNoIHRpcHMsIGJlaGluZCB1cHN0cmVhbSwgb3IgZGl2ZXJnZWQKLSBjb3B5IGxvY2FsLW9ubHkgZW52aXJvbm1lbnQgZmlsZXMgb25seSBmcm9tIGEgdXNlci1jb250cm9sbGVkIHBhdGgKLSB2YWxpZGF0ZSByZXF1aXJlZCBlbnZpcm9ubWVudCBrZXlzIHdpdGhvdXQgcHJpbnRpbmcgc2VjcmV0IHZhbHVlcwotIGluc3RhbGwgZGVwZW5kZW5jaWVzIHVzaW5nIHRoZSBwcm9qZWN0J3MgcGFja2FnZSBtYW5hZ2VyCi0gZmFpbCBsb3VkbHkgaW5zdGVhZCBvZiBjb250aW51aW5nIHdpdGggYSBwYXJ0aWFsIGVudmlyb25tZW50CgpHb29kIGNsZWFudXAgc2NyaXB0cyBzaG91bGQ6CgotIHJlbW92ZSBvbmx5IGRpc3Bvc2FibGUgZ2VuZXJhdGVkIGZvbGRlcnMKLSBuZXZlciBkZWxldGUgc291cmNlIGZpbGVzLCBkb2NzLCBtaWdyYXRpb25zLCBjb25maWcsIG9yIGxvY2FsIHNlY3JldHMKLSBiZSBzYWZlIHRvIHJ1biBtb3JlIHRoYW4gb25jZQoKS2VlcCBhcHAtc3BlY2lmaWMgZGV0YWlscyBhcyB2YXJpYWJsZXMgbmVhciB0aGUgdG9wIG9mIHRoZSBzY3JpcHQuCgpHZW5lcmljIGNsZWFudXAgdGVtcGxhdGU6CgpgYGBwb3dlcnNoZWxsCiRFcnJvckFjdGlvblByZWZlcmVuY2UgPSAiU3RvcCIKCldyaXRlLUhvc3QgIlJ1bm5pbmcgQ29kZXggY2xlYW51cCBzY3JpcHQgZnJvbToiIChHZXQtTG9jYXRpb24pCgokcGF0aHNUb1JlbW92ZSA9IEAoCiAgIi5uZXh0IiwKICAibm9kZV9tb2R1bGVzIiwKICAiY292ZXJhZ2UiLAogICJwbGF5d3JpZ2h0LXJlcG9ydCIsCiAgInRlc3QtcmVzdWx0cyIsCiAgIi52ZXJjZWwiLAogICIudHVyYm8iCikKCmZvcmVhY2ggKCRwYXRoIGluICRwYXRoc1RvUmVtb3ZlKSB7CiAgaWYgKFRlc3QtUGF0aCAkcGF0aCkgewogICAgV3JpdGUtSG9zdCAiUmVtb3ZpbmcgZGlzcG9zYWJsZSBwYXRoOiAkcGF0aCIKICAgIFJlbW92ZS1JdGVtIC1SZWN1cnNlIC1Gb3JjZSAkcGF0aCAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZQogIH0gZWxzZSB7CiAgICBXcml0ZS1Ib3N0ICJOb3QgcHJlc2VudCwgc2tpcHBpbmc6ICRwYXRoIgogIH0KfQoKV3JpdGUtSG9zdCAiQ29kZXggY2xlYW51cCBjb21wbGV0ZS4iCmBgYAoKR2VuZXJpYyBzZXR1cCB0ZW1wbGF0ZToKCmBgYHBvd2Vyc2hlbGwKJEVycm9yQWN0aW9uUHJlZmVyZW5jZSA9ICJTdG9wIgoKIyBBcHAtc3BlY2lmaWMgc2V0dGluZ3MKJFNvdXJjZUVudlBhdGggPSAie3tPcHRpb25hbCBwYXRoIHRvIHNvdXJjZSAuZW52LmxvY2FsLCBvciBsZWF2ZSBibGFua319fSIKJFJlcXVpcmVkRW52S2V5cyA9IEAoCiAgInt7T1BUSU9OQUxfUkVRVUlSRURfRU5WX0tFWX19IgopCiRSZXF1aXJlZFJlcG9GaWxlcyA9IEAoCiAgInBhY2thZ2UuanNvbiIKKQokSW5zdGFsbENvbW1hbmQgPSAibnBtIGluc3RhbGwiCgpXcml0ZS1Ib3N0ICI9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09IgpXcml0ZS1Ib3N0ICJDb2RleCBXb3JrdHJlZSBTZXR1cCIKV3JpdGUtSG9zdCAiPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSIKV3JpdGUtSG9zdCAiV29ya2luZyBkaXJlY3Rvcnk6IiAoR2V0LUxvY2F0aW9uKQpXcml0ZS1Ib3N0ICIiCgpXcml0ZS1Ib3N0ICJUb29sIHZlcnNpb25zOiIKZ2l0IC0tdmVyc2lvbgppZiAoR2V0LUNvbW1hbmQgbm9kZSAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZSkgeyBub2RlIC12IH0KaWYgKEdldC1Db21tYW5kIG5wbSAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZSkgeyBucG0gLXYgfQppZiAoR2V0LUNvbW1hbmQgZ2ggLUVycm9yQWN0aW9uIFNpbGVudGx5Q29udGludWUpIHsgZ2ggLS12ZXJzaW9uIH0KV3JpdGUtSG9zdCAiIgoKV3JpdGUtSG9zdCAiRmV0Y2hpbmcgbGF0ZXN0IEdpdCByZWZzLi4uIgpnaXQgZmV0Y2ggLS1hbGwgLS1wcnVuZQppZiAoJExBU1RFWElUQ09ERSAtbmUgMCkgewogIHRocm93ICJHaXQgZmV0Y2ggZmFpbGVkLiBDYW5ub3QgdmVyaWZ5IHdvcmt0cmVlIGZyZXNobmVzcy4iCn0KCiRoZWFkID0gKGdpdCByZXYtcGFyc2UgSEVBRCkuVHJpbSgpCmlmICgkTEFTVEVYSVRDT0RFIC1uZSAwIC1vciBbc3RyaW5nXTo6SXNOdWxsT3JXaGl0ZVNwYWNlKCRoZWFkKSkgewogIHRocm93ICJVbmFibGUgdG8gZGV0ZXJtaW5lIGN1cnJlbnQgSEVBRC4iCn0KCldyaXRlLUhvc3QgIkN1cnJlbnQgSEVBRDogJGhlYWQiCgokbWF0Y2hpbmdMb2NhbEJyYW5jaGVzID0gQCgKICBnaXQgZm9yLWVhY2gtcmVmIHJlZnMvaGVhZHMgLS1mb3JtYXQ9JyUocmVmbmFtZTpzaG9ydCkgJShvYmplY3RuYW1lKScgfAogICAgRm9yRWFjaC1PYmplY3QgewogICAgICAkcGFydHMgPSAkXyAtc3BsaXQgJ1xzKycKICAgICAgaWYgKCRwYXJ0cy5MZW5ndGggLWdlIDIgLWFuZCAkcGFydHNbMV0gLWVxICRoZWFkKSB7CiAgICAgICAgJHBhcnRzWzBdCiAgICAgIH0KICAgIH0KKQoKJG1hdGNoaW5nUmVtb3RlQnJhbmNoZXMgPSBAKAogIGdpdCBmb3ItZWFjaC1yZWYgcmVmcy9yZW1vdGVzIC0tZm9ybWF0PSclKHJlZm5hbWU6c2hvcnQpICUob2JqZWN0bmFtZSknIHwKICAgIFdoZXJlLU9iamVjdCB7IC1ub3QgJF8uU3RhcnRzV2l0aCgib3JpZ2luL0hFQUQgIikgfSB8CiAgICBGb3JFYWNoLU9iamVjdCB7CiAgICAgICRwYXJ0cyA9ICRfIC1zcGxpdCAnXHMrJwogICAgICBpZiAoJHBhcnRzLkxlbmd0aCAtZ2UgMiAtYW5kICRwYXJ0c1sxXSAtZXEgJGhlYWQpIHsKICAgICAgICAkcGFydHNbMF0KICAgICAgfQogICAgfQopCgppZiAoJG1hdGNoaW5nTG9jYWxCcmFuY2hlcy5Db3VudCAtZXEgMCAtYW5kICRtYXRjaGluZ1JlbW90ZUJyYW5jaGVzLkNvdW50IC1lcSAwKSB7CiAgZ2l0IGxvZyAtLW9uZWxpbmUgLS1kZWNvcmF0ZSAtNQogIHRocm93ICJTdG9wcGluZyBzZXR1cDogdGhpcyB3b3JrdHJlZSBIRUFEIGlzIG5vdCB0aGUgY3VycmVudCB0aXAgb2YgYW55IGtub3duIGxvY2FsIG9yIHJlbW90ZSBicmFuY2ggYWZ0ZXIgZmV0Y2guIgp9Cgpmb3JlYWNoICgkZmlsZSBpbiAkUmVxdWlyZWRSZXBvRmlsZXMpIHsKICBpZiAoLW5vdCAoVGVzdC1QYXRoICRmaWxlKSkgewogICAgdGhyb3cgIlJlcXVpcmVkIHJlcG8gZmlsZSBub3QgZm91bmQ6ICRmaWxlLiBSdW4gdGhpcyBzY3JpcHQgZnJvbSB0aGUgcHJvamVjdCByb290IG9yIHVwZGF0ZSBSZXF1aXJlZFJlcG9GaWxlcy4iCiAgfQp9CgokdGFyZ2V0RW52ID0gSm9pbi1QYXRoIChHZXQtTG9jYXRpb24pICIuZW52LmxvY2FsIgoKaWYgKC1ub3QgKFRlc3QtUGF0aCAkdGFyZ2V0RW52KSAtYW5kIC1ub3QgW3N0cmluZ106OklzTnVsbE9yV2hpdGVTcGFjZSgkU291cmNlRW52UGF0aCkpIHsKICBpZiAoLW5vdCAoVGVzdC1QYXRoICRTb3VyY2VFbnZQYXRoKSkgewogICAgdGhyb3cgIi5lbnYubG9jYWwgbWlzc2luZyBpbiB3b3JrdHJlZSBhbmQgc291cmNlIHBhdGggZG9lcyBub3QgZXhpc3Q6ICRTb3VyY2VFbnZQYXRoIgogIH0KCiAgQ29weS1JdGVtICRTb3VyY2VFbnZQYXRoICR0YXJnZXRFbnYgLUZvcmNlIC1FcnJvckFjdGlvbiBTdG9wCiAgV3JpdGUtSG9zdCAiLmVudi5sb2NhbCBjb3BpZWQgaW50byB3b3JrdHJlZS4iCn0KCmlmICgkUmVxdWlyZWRFbnZLZXlzLkNvdW50IC1ndCAwKSB7CiAgaWYgKC1ub3QgKFRlc3QtUGF0aCAkdGFyZ2V0RW52KSkgewogICAgdGhyb3cgIi5lbnYubG9jYWwgaXMgcmVxdWlyZWQgYnV0IG1pc3NpbmcuIgogIH0KCiAgZm9yZWFjaCAoJGtleSBpbiAkUmVxdWlyZWRFbnZLZXlzKSB7CiAgICBpZiAoW3N0cmluZ106OklzTnVsbE9yV2hpdGVTcGFjZSgka2V5KSAtb3IgJGtleS5Db250YWlucygie3siKSkgewogICAgICBjb250aW51ZQogICAgfQoKICAgIGlmICgtbm90IChTZWxlY3QtU3RyaW5nIC1QYXRoICR0YXJnZXRFbnYgLVBhdHRlcm4gIl4ka2V5PSIgLVF1aWV0KSkgewogICAgICB0aHJvdyAiJGtleSBtaXNzaW5nIGZyb20gLmVudi5sb2NhbCIKICAgIH0KICB9CgogIFdyaXRlLUhvc3QgIi5lbnYubG9jYWwgdmFsaWRhdGlvbiBwYXNzZWQuIgp9CgppZiAoLW5vdCBbc3RyaW5nXTo6SXNOdWxsT3JXaGl0ZVNwYWNlKCRJbnN0YWxsQ29tbWFuZCkpIHsKICBXcml0ZS1Ib3N0ICJSdW5uaW5nIGRlcGVuZGVuY3kgaW5zdGFsbCBjb21tYW5kOiAkSW5zdGFsbENvbW1hbmQiCiAgSW52b2tlLUV4cHJlc3Npb24gJEluc3RhbGxDb21tYW5kCgogIGlmICgkTEFTVEVYSVRDT0RFIC1uZSAwKSB7CiAgICB0aHJvdyAiRGVwZW5kZW5jeSBpbnN0YWxsIGNvbW1hbmQgZmFpbGVkLiIKICB9Cn0KCldyaXRlLUhvc3QgIiIKV3JpdGUtSG9zdCAiPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSIKV3JpdGUtSG9zdCAiQ29kZXggZW52aXJvbm1lbnQgc2V0dXAgY29tcGxldGUuIgpXcml0ZS1Ib3N0ICI9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09IgpgYGAK")
+          LOOP_A = decode("IyMgTG9vcCBTdGVwIEEgLSBHcm91bmQgYSBuZXcgQ2hhdEdQVCBjaGF0IGluIHRoZSByZXBvCgpVc2UgdGhpcyBhdCB0aGUgc3RhcnQgb2YgYSBuZXcgQ2hhdEdQVCBjaGF0LCBhZnRlciBjYW1wYWlnbiBjbG9zZW91dCwgb3Igd2hlbmV2ZXIgdGhlIGNoYXQgY29udGV4dCBmZWVscyBzdGFsZS4gVGhpcyBzdGVwIGlzIG9ubHkgZm9yIGdyb3VuZGluZy4gRG8gbm90IHBsYW4gbmV3IHdvcmsgaGVyZTsgdXNlIFN0ZXAgQiBvciBTdGVwIEMgZm9yIHRoYXQuCgpgYGBtZApJIGFtIHN0YXJ0aW5nIGEgbmV3IENoYXRHUFQgY2hhdCBmb3IgYW4gZXhpc3RpbmcgcHJvamVjdC4KClRhcmdldCBicmFuY2g6Cnt7V2hhdCBpcyB0aGUgdGFyZ2V0IGJyYW5jaD99fQoKUGxlYXNlIHJlLWVzdGFibGlzaCBjb250ZXh0IGJ5IGluc3BlY3RpbmcgcmVwbyBkb2NzIGF0IHRoZSB0YXJnZXQgYnJhbmNoOgotIEFHRU5UUy5tZAotIGRvY3MvcHJvZHVjdC5tZAotIGRvY3MvYXJjaGl0ZWN0dXJlLm1kCi0gZG9jcy9yb2FkbWFwLm1kCi0gZG9jcy9jdXJyZW50LXRhc2subWQKLSBhY3RpdmUgZG9jcy9jYW1wYWlnbnMvKi5tZCBpZiByZWxldmFudAoKUnVsZXM6Ci0gVHJlYXQgcmVwbyBkb2NzIGFzIGF1dGhvcml0YXRpdmUuCi0gRG8gbm90IHJlbHkgb24gbWVtb3J5IGZyb20gcHJpb3IgY2hhdHMuCi0gSWYgY29ubmVjdG9yIGFjY2VzcyBpcyB1bmF2YWlsYWJsZSwgYXNrIG1lIGZvciBvbmx5IHRoZSBzbWFsbGVzdCBtaXNzaW5nIGZpbGUuCi0gSWYgZG9jcyBjb25mbGljdCwgY2FsbCBvdXQgdGhlIGNvbmZsaWN0IGJlZm9yZSByZWNvbW1lbmRpbmcgbmV4dCBzdGVwcy4KCkFmdGVyIHJlYWRpbmcgdGhlIGRvY3MsIHN1bW1hcml6ZToKMS4gY3VycmVudCBwcm9kdWN0IGRpcmVjdGlvbgoyLiBjdXJyZW50IGFyY2hpdGVjdHVyZS9zdGF0ZQozLiBhY3RpdmUgd29yayBpdGVtIG9yIGNhbXBhaWduCjQuIG5leHQgYWN0aW9uIGFjY29yZGluZyB0byBkb2NzL2N1cnJlbnQtdGFzay5tZAo1LiBhbnkgZG9jIGNvbmZsaWN0cyBvciBzdGFsZSBhcmVhcwpgYGAK")
+          LOOP_B_SECTION = decode("IyMgTG9vcCBTdGVwIEIgLSBQbGFuIHRoZSBuZXh0IHdvcmsgaXRlbQoKVXNlIHRoaXMgZm9yIGEgY2FtcGFpZ24sIGEgc3RhbmRhbG9uZSBzbGljZSwgb3IgYSBwYXRjaC4gQ2FtcGFpZ24gcGxhbm5pbmcgaXMgcGFydCBvZiB0aGUgcmVwZWF0YWJsZSBsb29wLCBub3QganVzdCBmaXJzdC10aW1lIHNldHVwLgoKYGBgbWQKQmVmb3JlIHBsYW5uaW5nLCBkbyBhIGZyZXNoIHNvdXJjZS1vZi10cnV0aCBjaGVjayB1c2luZyByZXBvIGRvY3MgYXQgdGhlIHRhcmdldCBicmFuY2guCgpXb3JrIG1vZGU6Cnt7V2hpY2ggd29yayB0eXBlIGRvIHlvdSB3YW50IHRvIGRvPyAoQ2FtcGFpZ24sIFNpbmdsZSBzbGljZSwgb3IgUGF0Y2gpfX0KClRhcmdldCBicmFuY2g6Cnt7V2hhdCBpcyB0aGUgdGFyZ2V0IGJyYW5jaD99fQoKQ3VycmVudCBvYmplY3RpdmU6Cnt7V2hhdCBkbyB5b3Ugd2FudCB0byBhY2NvbXBsaXNoP319CgpBZGRpdGlvbmFsIGNvbnRleHQ6Cnt7QW55dGhpbmcgaW1wb3J0YW50IHRoYXQgaXMgbm90IGFscmVhZHkgaW4gcmVwbyBkb2NzLCBvciB3cml0ZSAibm9uZSJ9fQoKUGxlYXNlIGluc3BlY3QgdGhlIGNvbmZpZ3VyZWQgR2l0SHViIHJlcG8gYXQgdGhlIHRhcmdldCBicmFuY2gsIG9yIGFzayBtZSBmb3Igb25seSB0aGUgc21hbGxlc3QgbWlzc2luZyBmaWxlIGlmIGNvbm5lY3RvciBhY2Nlc3MgaXMgdW5hdmFpbGFibGU6Ci0gQUdFTlRTLm1kCi0gZG9jcy9wcm9kdWN0Lm1kCi0gZG9jcy9hcmNoaXRlY3R1cmUubWQKLSBkb2NzL3JvYWRtYXAubWQKLSBkb2NzL2N1cnJlbnQtdGFzay5tZAotIGFjdGl2ZSBkb2NzL2NhbXBhaWducy8qLm1kIGlmIHJlbGV2YW50CgpJZiBXb3JrIG1vZGUgaXMgQ0FNUEFJR04sIHByb2R1Y2UgYSBjYW1wYWlnbiBkb2N1bWVudCB3aXRoOgoxLiBvYmplY3RpdmUgYW5kIHRhcmdldCBzdGF0ZQoyLiBjdXJyZW50IHN0YXRlIGFuZCBzb3VyY2Utb2YtdHJ1dGggbm90ZXMKMy4gc2NvcGUgYW5kIG5vbi1nb2Fscwo0LiBzbGljZSBwbGFuCjUuIGFjY2VwdGFuY2UgY3JpdGVyaWEgcGVyIHNsaWNlCjYuIHZhbGlkYXRpb24gYW5kIG1hbnVhbCBRQSBleHBlY3RhdGlvbnMKNy4gc3RvcCBjb25kaXRpb25zIGFuZCBjYW1wYWlnbiBjb21wbGV0aW9uIGNyaXRlcmlhCjguIGZvbGxvdy11cCBiYWNrbG9nCgpJZiBXb3JrIG1vZGUgaXMgU0lOR0xFX1NMSUNFLCBwcm9kdWNlIGEgY29uY2lzZSBpbXBsZW1lbnRhdGlvbiBwbGFuIHdpdGg6CjEuIGdvYWwgYW5kIHNjb3BlCjIuIG5vbi1nb2FscwozLiBhY2NlcHRhbmNlIGNyaXRlcmlhCjQuIHZhbGlkYXRpb24gYW5kIGRvY3MgdXBkYXRlIGV4cGVjdGF0aW9ucwo1LiBzdG9wIGNvbmRpdGlvbnMKCklmIFdvcmsgbW9kZSBpcyBQQVRDSCwgcHJvZHVjZSBhIG5hcnJvdyBwYXRjaCBwbGFuIHdpdGg6CjEuIGlzc3VlcyB0byBmaXggYW5kIGV4cGVjdGVkIGJlaGF2aW9yCjIuIG5vbi1nb2FscwozLiBhY2NlcHRhbmNlIGNyaXRlcmlhCjQuIHZhbGlkYXRpb24gZXhwZWN0YXRpb25zCjUuIHJpc2tzCgpUaGUgcGxhbiBzaG91bGQgc3VwcG9ydCBsYXJnZSBzd2F0aHMgd2hlbiBhcHByb3ByaWF0ZSwgYnV0IGtlZXAgZWFjaCBpbXBsZW1lbnRhdGlvbiBzdGVwIGluZGVwZW5kZW50bHkgcmV2aWV3YWJsZS4KYGBg")
+          LOOP_F = decode("IyMgTG9vcCBTdGVwIEYgLSBQYXRjaCB3aGVuIG5lZWRlZAoKYGBgbWQKQ3JlYXRlIGEgbmFycm93IENvZGV4LXJlYWR5IHBhdGNoIGhhbmRvZmYuCgpCcmFuY2ggdG8gcGF0Y2g6Cnt7V2hhdCBicmFuY2ggc2hvdWxkIENvZGV4IHBhdGNoP319CgpJc3N1ZXMgdG8gZml4Ogp7e0xpc3QgdGhlIGlzc3VlcyB0aGlzIHBhdGNoIHNob3VsZCBmaXh9fQoKQWRkaXRpb25hbCBjb250ZXh0Ogp7e0FueXRoaW5nIENvZGV4IG5lZWRzIHRoYXQgaXMgbm90IGFscmVhZHkgaW4gcmVwbyBkb2NzLCBvciB3cml0ZSAibm9uZSJ9fQoKUGxlYXNlIGluc3BlY3QgcmVwbyBkb2NzIGF0IHRoZSB0YXJnZXQgYnJhbmNoIGlmIGN1cnJlbnQgc3RhdGUgbWF0dGVycy4gVGhlbiBnZW5lcmF0ZSBhIGNvbmNpc2UgcGF0Y2ggaGFuZG9mZiB3aXRoOgoxLiBnb2FsCjIuIHNvdXJjZS1vZi10cnV0aCBkb2NzIHRvIGluc3BlY3QKMy4gc2NvcGUKNC4gbm9uLWdvYWxzCjUuIGFjY2VwdGFuY2UgY3JpdGVyaWEKNi4gdmFsaWRhdGlvbiBleHBlY3RhdGlvbnMKNy4gZG9jdW1lbnRhdGlvbiBkZWx0YSBleHBlY3RhdGlvbnMKOC4gZmluYWwgcmVwb3J0aW5nIGV4cGVjdGF0aW9ucwoKUnVsZXM6Ci0gT25seSBmaXggdGhlIGxpc3RlZCBpc3N1ZXMuCi0gRG8gbm90IHJlZGVzaWduIGFkamFjZW50IGZsb3dzLgotIERvIG5vdCBzdGFydCB0aGUgbmV4dCBjYW1wYWlnbiBzbGljZSB1bmxlc3MgZXhwbGljaXRseSByZXF1ZXN0ZWQuCi0gRG8gbm90IGNoYW5nZSBzY2hlbWEvYXV0aC9kZXBsb3ltZW50IHVubGVzcyByZXF1aXJlZCBhbmQgcmVwb3J0ZWQgZmlyc3QuCi0gRG8gbm90IHJld3JpdGUgdW5yZWxhdGVkIGNvZGUuCgpGaW5hbCByZXBvcnQgbXVzdCBpbmNsdWRlOgotIGJyYW5jaAotIGNvbW1pdAotIGZpbGVzIGNoYW5nZWQKLSB2YWxpZGF0aW9uIHJlc3VsdHMKLSBkb2N1bWVudGF0aW9uIGRlbHRhCi0gbWFudWFsIFFBIHJlY29tbWVuZGF0aW9ucwotIHJlbWFpbmluZyByaXNrcyBvciBmb2xsb3ctdXBzCgpLZWVwIHRoaXMgaGFuZG9mZiBzaG9ydCBhbmQgY29weS1wYXN0ZSByZWFkeS4KYGBg")
+          LOOP_G = decode("IyMgTG9vcCBTdGVwIEcgLSBDbG9zZSB0aGUgY2FtcGFpZ24gb3IgcGhhc2UKCldoZW4gYSBjYW1wYWlnbiBvciBtYWpvciBwaGFzZSBpcyBjb21wbGV0ZSwgY2xvc2UgaXQgb3V0LCB1cGRhdGUgZG9jcywgYW5kIHVzdWFsbHkgc3RhcnQgYSBuZXcgQ2hhdEdQVCBjaGF0IGZvciB0aGUgbmV4dCBjYW1wYWlnbiBvciBwaGFzZS4KCmBgYG1kCkhlbHAgbWUgY2xvc2Ugb3V0IHRoaXMgd29yayBpdGVtIGFuZCBwcmVwYXJlIHRoZSBwcm9qZWN0IGZvciB0aGUgbmV4dCBzdGFnZS4KClRhcmdldCBicmFuY2g6Cnt7V2hhdCBpcyB0aGUgdGFyZ2V0IGJyYW5jaD99fQoKV29yayBpdGVtIHRvIGNsb3NlOgp7e1doaWNoIGNhbXBhaWduLCBzbGljZSwgcGF0Y2gsIG9yIHBoYXNlIGlzIGJlaW5nIGNsb3NlZCBvdXQ/fX0KCktub3duIHJlbWFpbmluZyBpc3N1ZXM6Cnt7TGlzdCBhbnl0aGluZyBJIGFscmVhZHkga25vdywgb3Igd3JpdGUgIm5vbmUifX0KClBsZWFzZSBkbyBhIGZyZXNoIHNvdXJjZS1vZi10cnV0aCBjaGVjayB1c2luZyByZXBvIGRvY3MgYXQgdGhlIHRhcmdldCBicmFuY2guIElmIGNvbm5lY3RvciBhY2Nlc3MgaXMgdW5hdmFpbGFibGUsIGFzayBtZSBmb3Igb25seSB0aGUgc21hbGxlc3QgbWlzc2luZyBmaWxlIGZyb206Ci0gQUdFTlRTLm1kCi0gZG9jcy9wcm9kdWN0Lm1kCi0gZG9jcy9hcmNoaXRlY3R1cmUubWQKLSBkb2NzL3JvYWRtYXAubWQKLSBkb2NzL2N1cnJlbnQtdGFzay5tZAotIGFjdGl2ZSBjYW1wYWlnbiBkb2MgaWYgcmVsZXZhbnQKClRoZW4gcmVjb21tZW5kOgoxLiB3aGV0aGVyIHRoZSB3b3JrIGl0ZW0gYXBwZWFycyBjb21wbGV0ZQoyLiB3aGF0IGRvY3Mgc2hvdWxkIGJlIHVwZGF0ZWQKMy4gd2hhdCBvbGQgY29udGV4dCBzaG91bGQgYmUgYXJjaGl2ZWQgb3IgcmVtb3ZlZCBmcm9tIHRoZSBob3QgcGF0aAo0LiB3aGF0IGRvY3MvY3VycmVudC10YXNrLm1kIHNob3VsZCBzYXkgbmV4dAo1LiB3aGV0aGVyIHRoZSBuZXh0IHN0ZXAgc2hvdWxkIGJlIGEgcGF0Y2gsIG5ldyBjYW1wYWlnbiwgc3RhbmRhbG9uZSBzbGljZSwgcHJvZHVjdGlvbiBoYXJkZW5pbmcsIG9yIHBhdXNlCjYuIHdoZXRoZXIgSSBzaG91bGQgc3RhcnQgYSBuZXcgQ2hhdEdQVCBjaGF0IGZvciB0aGUgbmV4dCBwaGFzZQo3LiBhIENvZGV4LXJlYWR5IGRvY3MtdXBkYXRlIGhhbmRvZmYgaWYgbmVlZGVkCmBgYA==")
+          FRESHNESS = decode("IyBEb2N1bWVudGF0aW9uIGZyZXNobmVzcyBzeXN0ZW0KClVzZSBgZG9jcy9jdXJyZW50LXRhc2subWRgIGFzIHRoZSBhY3RpdmUgd29yayBwb2ludGVyIGZvciBjdXJyZW50IHN0YXR1cyBhbmQgbmV4dCBhY3Rpb24uCgpDb2RleCBtdXN0IHVwZGF0ZSBgZG9jcy9jdXJyZW50LXRhc2subWRgIGFmdGVyIGV2ZXJ5IGltcGxlbWVudGF0aW9uLiBVcGRhdGUgY2FtcGFpZ24gZG9jcyB3aGVuIHNsaWNlIHN0YXR1cyBjaGFuZ2VzLiBVcGRhdGUgYXJjaGl0ZWN0dXJlIG9yIHJvYWRtYXAgZG9jcyBvbmx5IHdoZW4gdGhlIHdvcmsgY2hhbmdlcyBhcmNoaXRlY3R1cmUsIHJvdXRlcywgc2VydmljZXMsIGRlcGxveW1lbnQsIG1pbGVzdG9uZSBzdGF0dXMsIHNjb3BlLCBvciBzZXF1ZW5jaW5nLgoKQ2hhdEdQVCBzaG91bGQgdXNlIHRoZSBjb25maWd1cmVkIEdpdEh1YiBjb25uZWN0b3IgdG8gaW5zcGVjdCByZXBvIGRvY3MgYXQgdGhlIHRhcmdldCBicmFuY2ggd2hlbmV2ZXIgY3VycmVudCBzdGF0ZSBtYXR0ZXJzLiBDaGF0IG1lbW9yeSBhbmQgcHJpb3IgZmluYWwgcmVwb3J0cyBhcmUgb3JpZW50YXRpb24gb25seTsgcmVwbyBkb2NzIGFyZSBhdXRob3JpdGF0aXZlLgoKIyMgRG9jdW1lbnRhdGlvbiBkZWx0YQoKRXZlcnkgQ29kZXggZmluYWwgcmVwb3J0IHNob3VsZCBpbmNsdWRlOgoKYGBgbWQKRG9jdW1lbnRhdGlvbiBkZWx0YToKLSBkb2NzL2N1cnJlbnQtdGFzay5tZDoge3tTdW1tYXJpemUgd2hhdCBjaGFuZ2VkIGluIGRvY3MvY3VycmVudC10YXNrLm1kfX0KLSBjYW1wYWlnbiBkb2MsIGlmIGFwcGxpY2FibGU6IHt7U3VtbWFyaXplIHdoYXQgY2hhbmdlZCwgb3Igd3JpdGUgIm5vdCBhcHBsaWNhYmxlIn19Ci0gZG9jcy9hcmNoaXRlY3R1cmUubWQ6IHt7U3VtbWFyaXplIHdoYXQgY2hhbmdlZCwgb3Igd3JpdGUgIm5vdCBhcHBsaWNhYmxlIn19Ci0gZG9jcy9yb2FkbWFwLm1kOiB7e1N1bW1hcml6ZSB3aGF0IGNoYW5nZWQsIG9yIHdyaXRlICJub3QgYXBwbGljYWJsZSJ9fQpgYGA=")
+          CURRENT_STATE = decode("IyBDdXJyZW50LXN0YXRlIHByb3RvY29sCgpVc2UgdGhpcyB3aGVuZXZlciBDaGF0R1BUIG1pZ2h0IGJlIHN0YWxlLgoKYGBgbWQKQmVmb3JlIGFuc3dlcmluZywgZG8gYSBmcmVzaCBzb3VyY2Utb2YtdHJ1dGggY2hlY2sgZm9yIHRoaXMgcHJvamVjdC4KCkN1cnJlbnQgc2l0dWF0aW9uOgp7e0JyaWVmbHkgZGVzY3JpYmUgd2h5IHlvdSBuZWVkIGEgc291cmNlLW9mLXRydXRoIGNoZWNrfX0KClRhcmdldCBicmFuY2g6Cnt7V2hhdCBpcyB0aGUgdGFyZ2V0IGJyYW5jaD99fQoKUGxlYXNlIGluc3BlY3QgcmVwbyBkb2NzIGF0IHRoZSB0YXJnZXQgYnJhbmNoIGZvciB0aGUgbGF0ZXN0IHZlcnNpb25zIG9mOgotIEFHRU5UUy5tZAotIGRvY3MvcHJvZHVjdC5tZAotIGRvY3MvYXJjaGl0ZWN0dXJlLm1kCi0gZG9jcy9yb2FkbWFwLm1kCi0gZG9jcy9jdXJyZW50LXRhc2subWQKLSBhY3RpdmUgZG9jcy9jYW1wYWlnbnMvKi5tZCBpZiByZWxldmFudAoKUnVsZXM6Ci0gRG8gbm90IHJlbHkgb24gbWVtb3J5IG9yIHByaW9yIGNoYXQgYXNzdW1wdGlvbnMuCi0gVHJlYXQgcmVwbyBkb2NzIGFzIGF1dGhvcml0YXRpdmUuCi0gSWYgY29ubmVjdG9yIGFjY2VzcyBpcyB1bmF2YWlsYWJsZSBvciBhIGZpbGUgaXMgbWlzc2luZywgYXNrIG1lIHRvIHBhc3RlIG9yIHVwbG9hZCBvbmx5IHRoZSBzcGVjaWZpYyBtaXNzaW5nIGZpbGVzLgotIElmIHRoZSBicmFuY2ggaXMgdW5tZXJnZWQsIGRvIG5vdCBhc3N1bWUgbWFpbiBpbmNsdWRlcyB0aGUgYnJhbmNoIGNoYW5nZXMuCi0gSWYgZG9jcyBjb25mbGljdCwgY2FsbCBvdXQgdGhlIGNvbmZsaWN0IGJlZm9yZSBtYWtpbmcgcmVjb21tZW5kYXRpb25zLgoKQWZ0ZXIgdGhlIHNvdXJjZS1vZi10cnV0aCBjaGVjaywgYW5zd2VyIG15IHJlcXVlc3Q6Cnt7V2hhdCBkbyB5b3Ugd2FudCBDaGF0R1BUIHRvIGFuc3dlciBvciBoZWxwIHdpdGg/fX0KYGBg")
+          OPERATING = decode("IyBPcGVyYXRpbmcgcnVsZXMKCjEuIFRoZSByZXBvIGlzIHRoZSBkdXJhYmxlIG1lbW9yeS4gQ2hhdHMgYXJlIHRlbXBvcmFyeS4KMi4gQ29kZXggb3ducyBkb2MgZnJlc2huZXNzIGR1cmluZyBpbXBsZW1lbnRhdGlvbi4KMy4gYGRvY3MvY3VycmVudC10YXNrLm1kYCBtdXN0IGJlIHVwZGF0ZWQgYWZ0ZXIgZXZlcnkgaW1wbGVtZW50YXRpb24uCjQuIEV2ZXJ5IENvZGV4IGZpbmFsIHJlcG9ydCBtdXN0IGluY2x1ZGUgYSBkb2N1bWVudGF0aW9uIGRlbHRhLgo1LiBLZWVwIGhvdCBjb250ZXh0IHNtYWxsOiBgQUdFTlRTLm1kYCwgcHJvZHVjdCwgYXJjaGl0ZWN0dXJlLCByb2FkbWFwLCBjdXJyZW50LXRhc2ssIGFuZCB0aGUgYWN0aXZlIGNhbXBhaWduIGRvYy4KNi4gVXNlIGNhbXBhaWducyBmb3IgbGFyZ2Ugc3dhdGhzIG9mIHdvcmsgYW5kIHBhdGNoZXMgZm9yIG5hcnJvdyBmaXhlcy4KNy4gQ29uZmlndXJlIENoYXRHUFQsIEdpdEh1YiByZXBvIGFjY2VzcywgYW5kIENvZGV4IGJlZm9yZSByZWx5aW5nIG9uIHRoZW0uCjguIEluc3BlY3QgcmVwbyBkb2NzIHRocm91Z2ggdGhlIGNvbmZpZ3VyZWQgR2l0SHViIGNvbm5lY3RvciBiZWZvcmUgYXNraW5nIGZvciBwYXN0ZWQgZG9jcyB3aGVuIGN1cnJlbnQgc3RhdGUgbWF0dGVycy4KOS4gVXNlIFdpbmRvd3MgKyBQb3dlclNoZWxsIGJ5IGRlZmF1bHQuCjEwLiBLZWVwIENvZGV4IHdvcmt0cmVlIHNldHVwIGluIENvZGV4IGNvbmZpZ3VyYXRpb24gb3IgaGVscGVyIHNjcmlwdHMsIG5vdCBub3JtYWwgaGFuZG9mZnMuCjExLiBTdG9wIHdoZW4gZG9jcyBjb25mbGljdC4KMTIuIEFyY2hpdmUgb2xkIGhhbmRvZmZzLCBvYnNvbGV0ZSBjYW1wYWlnbiBkb2NzLCBsb25nIHNsaWNlIGxvZ3MsIGFuZCBzdGFsZSBpbnN0cnVjdGlvbnMu")
+          OLD_PRIMER_FRESHNESS = decode("IyMgRG9jdW1lbnRhdGlvbiBmcmVzaG5lc3MKCkNvZGV4IG93bnMgZG9jdW1lbnRhdGlvbiBmcmVzaG5lc3MgZHVyaW5nIGltcGxlbWVudGF0aW9uLiBFdmVyeSBpbXBsZW1lbnRhdGlvbiBzaG91bGQgdXBkYXRlIGBkb2NzL2N1cnJlbnQtdGFzay5tZGAuIFVwZGF0ZSBjYW1wYWlnbiBkb2NzIHdoZW4gc2xpY2Ugc3RhdHVzIGNoYW5nZXMuIFVwZGF0ZSBhcmNoaXRlY3R1cmUgb3Igcm9hZG1hcCBkb2NzIG9ubHkgd2hlbiB0aGUgd29yayBjaGFuZ2VzIGFyY2hpdGVjdHVyZSwgcm91dGVzLCBzZXJ2aWNlcywgZGVwbG95bWVudCwgbWlsZXN0b25lIHN0YXR1cywgc2NvcGUsIG9yIHNlcXVlbmNpbmcuCgpFdmVyeSBDb2RleCBmaW5hbCByZXBvcnQgc2hvdWxkIGluY2x1ZGUgYSBkb2N1bWVudGF0aW9uIGRlbHRhIGFuZCBhIGNvbXBhY3Qgc3RhdGUgcGFja2V0LgoKVGhlIHN0YXRlIHBhY2tldCBpcyBub3QgYSBzb3VyY2Ugb2YgdHJ1dGguIEl0IGlzIGEgdHJhbnNpdGlvbiBub3RlIHRoYXQgaGVscHMgdGhlIG5leHQgQ2hhdEdQVCBzZXNzaW9uIG9yaWVudCBxdWlja2x5LiBSZXBvIGRvY3MgcmVtYWluIGF1dGhvcml0YXRpdmUu")
+          NEW_PRIMER_FRESHNESS = decode("IyMgRG9jdW1lbnRhdGlvbiBmcmVzaG5lc3MKCkNvZGV4IG93bnMgZG9jdW1lbnRhdGlvbiBmcmVzaG5lc3MgZHVyaW5nIGltcGxlbWVudGF0aW9uLiBFdmVyeSBpbXBsZW1lbnRhdGlvbiBzaG91bGQgdXBkYXRlIGBkb2NzL2N1cnJlbnQtdGFzay5tZGAuIFVwZGF0ZSBjYW1wYWlnbiBkb2NzIHdoZW4gc2xpY2Ugc3RhdHVzIGNoYW5nZXMuIFVwZGF0ZSBhcmNoaXRlY3R1cmUgb3Igcm9hZG1hcCBkb2NzIG9ubHkgd2hlbiB0aGUgd29yayBjaGFuZ2VzIGFyY2hpdGVjdHVyZSwgcm91dGVzLCBzZXJ2aWNlcywgZGVwbG95bWVudCwgbWlsZXN0b25lIHN0YXR1cywgc2NvcGUsIG9yIHNlcXVlbmNpbmcuCgpFdmVyeSBDb2RleCBmaW5hbCByZXBvcnQgc2hvdWxkIGluY2x1ZGUgYSBkb2N1bWVudGF0aW9uIGRlbHRhIHRoYXQgc2F5cyB3aGljaCBkb2NzIGNoYW5nZWQgYW5kIHdoeS4KCkNoYXRHUFQgc2hvdWxkIGluc3BlY3QgcmVwbyBkb2NzIGF0IHRoZSB0YXJnZXQgYnJhbmNoIHdoZW5ldmVyIGN1cnJlbnQgc3RhdGUgbWF0dGVycy4gUHJpb3IgY2hhdCBjb250ZXh0IGFuZCBmaW5hbCByZXBvcnRzIGFyZSBvcmllbnRhdGlvbiBvbmx5OyByZXBvIGRvY3MgcmVtYWluIGF1dGhvcml0YXRpdmUu")
+
+          def replace_all(text: str, old: str, new: str, label: str, required: bool = False) -> str:
+              count = text.count(old)
+              if count == 0:
+                  if required:
+                      raise SystemExit(f"Missing expected text for replacement: {label}")
+                  print(f"Skipping absent text: {label}")
+                  return text
+              print(f"Replacing {count} occurrence(s): {label}")
+              return text.replace(old, new)
+
+          def replace_between(text: str, start: str, end: str, replacement: str, label: str) -> str:
+              s = text.find(start)
+              if s < 0:
+                  raise SystemExit(f"Missing start marker for {label}: {start}")
+              e = text.find(end, s + len(start))
+              if e < 0:
+                  raise SystemExit(f"Missing end marker for {label}: {end}")
+              print(f"Replacing section: {label}")
+              return text[:s] + replacement.rstrip() + "\n\n" + text[e:]
+
+          def replace_regex(text: str, pattern: str, replacement: str, label: str, required: bool = True) -> str:
+              new_text, count = re.subn(pattern, replacement, text, flags=re.M)
+              if count == 0:
+                  if required:
+                      raise SystemExit(f"Missing regex match for {label}")
+                  print(f"Skipping absent regex: {label}")
+                  return text
+              print(f"Replacing {count} regex occurrence(s): {label}")
+              return new_text
+
+          guide = replace_all(
+              guide,
+              "13. Repeat: plan work -> generate handoff -> implement -> docs/state update -> QA -> merge or patch.",
+              "13. Repeat: plan work -> generate handoff -> implement -> docs update -> QA -> merge or patch.",
+              "quick start loop wording",
+          )
+          guide = replace_all(
+              guide,
+              "Prefer step-by-step guidance, lean Codex handoffs, reviewable slices, clear stop conditions, documentation delta requirements, and final state packets from coding agents.",
+              "Prefer step-by-step guidance, lean Codex handoffs, reviewable slices, clear stop conditions, documentation delta requirements, and clear final reports from coding agents.",
+              "starter instructions final reports",
+          )
+          guide = replace_all(guide, "- Treat state packets as transition notes only.\n", "", "state packet transition rule")
+          guide = replace_all(
+              guide,
+              "- The workflow primer covers campaign/slice/patch workflow, documentation freshness, state packets, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.",
+              "- The workflow primer covers campaign/slice/patch workflow, documentation freshness, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.",
+              "Stage 4 primer scope",
+          )
+
+          if "## Stage 2A - Optional Codex worktree setup and cleanup scripts" not in guide:
+              guide = replace_all(
+                  guide,
+                  "Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.\n\n\n## Stage 3 - Define the project",
+                  "Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.\n" + STAGE2A + "\n\n## Stage 3 - Define the project",
+                  "Stage 2A insertion",
+                  required=True,
+              )
+          else:
+              print("Stage 2A already present; skipping insertion.")
+
+          guide = replace_all(guide, "- state packet expectation in the final report\n", "", "handoff state packet bullet")
+          guide = replace_all(
+              guide,
+              "After Codex finishes, paste its final report into ChatGPT. The final report should include a documentation delta and state packet.",
+              "After Codex finishes, paste its final report into ChatGPT. The final report should include a documentation delta.",
+              "Stage 8 final report intro",
+          )
+          guide = replace_all(
+              guide,
+              "Codex final report:\n{{Paste the Codex final report, including the documentation delta and state packet if present}}",
+              "Codex final report:\n{{Paste the Codex final report, including the documentation delta}}",
+              "Codex final report prompt input",
+          )
+          guide = replace_all(guide, "Use the state packet as orientation only. ", "", "state packet orientation prefix")
+          guide = replace_all(guide, "Treat the state packet as a transition note only.\n", "", "state packet transition note rule")
+          guide = replace_all(
+              guide,
+              "Start a new ChatGPT chat at the beginning of a new campaign or major phase. Use the state packet from the most recent Codex report as a transition note, not as source of truth. Ask ChatGPT to inspect repo docs at the target branch when current state matters.",
+              "Start a new ChatGPT chat at the beginning of a new campaign or major phase. Ask ChatGPT to inspect repo docs at the target branch when current state matters.",
+              "main loop intro",
+          )
+
+          guide = replace_between(guide, "## Loop Step A -", "## Loop Step B -", LOOP_A, "Loop Step A")
+          guide = replace_between(guide, "## Loop Step B -", "## Loop Step C -", LOOP_B_SECTION, "Loop Step B")
+          guide = replace_all(
+              guide,
+              "- documentation delta\n- state packet\n- manual QA recommendations\n- known risks",
+              "- documentation delta\n- manual QA recommendations\n- known risks or follow-ups",
+              "Codex final report bullets",
+          )
+          guide = replace_between(guide, "## Loop Step F -", "## Loop Step G -", LOOP_F, "Loop Step F")
+          guide = replace_between(guide, "## Loop Step G -", "# Documentation freshness system", LOOP_G, "Loop Step G")
+          guide = replace_between(guide, "# Documentation freshness system", "## Docs health check", FRESHNESS, "Documentation freshness system")
+          guide = replace_all(guide, "- state packet for the next ChatGPT session\n", "", "docs health check final report line")
+          guide = replace_between(guide, "# Current-state protocol", "# Operating rules", CURRENT_STATE, "Current-state protocol")
+          guide = replace_between(guide, "# Operating rules", "# Appendix A - ChatGPT Project workflow primer", OPERATING, "Operating rules")
+
+          guide = replace_all(guide, OLD_PRIMER_FRESHNESS, NEW_PRIMER_FRESHNESS, "embedded primer freshness", required=True)
+          primer = replace_all(primer, OLD_PRIMER_FRESHNESS, NEW_PRIMER_FRESHNESS, "standalone primer freshness", required=True)
+          guide = replace_regex(guide, r"^- \*\*State packet:\*\*.*\n", "", "state packet key term", required=False)
+
+          lowered = guide.lower() + "\n" + primer.lower()
+          for term in ["state packet", "state packets", "project-state file"]:
+              if term in lowered:
+                  raise SystemExit(f"Forbidden term remains: {term}")
+
+          guide_path.write_text(guide, encoding="utf-8")
+          primer_path.write_text(primer, encoding="utf-8")
+
+      - name: Render guide HTML
+        run: python tools/render_guide.py
+
+      - name: Validate guide HTML
+        run: python tools/validate_guide.py
+
+      - name: Remove one-time workflows
+        run: |
+          rm -f .github/workflows/apply-approved-guide-update.yml
+          rm -f .github/workflows/apply-approved-guide-update-v2.yml
+
+      - name: Commit approved guide update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add llm_coding_workflow_guide.md llm-workflow-primer.md llm_coding_workflow_guide.html .github/workflows/apply-approved-guide-update.yml .github/workflows/apply-approved-guide-update-v2.yml
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Simplify guide workflow and remove state packets"
+            git push
+          fi
