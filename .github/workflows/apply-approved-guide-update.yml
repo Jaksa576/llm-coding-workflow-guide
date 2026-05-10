@@ -26,598 +26,173 @@ jobs:
           python-version: '3.12'
 
       - name: Apply approved Markdown updates
+        shell: python
         run: |
-          python - <<'PY'
           from pathlib import Path
+          import base64
           import re
 
-          guide_path = Path('llm_coding_workflow_guide.md')
-          primer_path = Path('llm-workflow-primer.md')
+          guide_path = Path("llm_coding_workflow_guide.md")
+          primer_path = Path("llm-workflow-primer.md")
 
-          guide = guide_path.read_text(encoding='utf-8')
-          primer = primer_path.read_text(encoding='utf-8')
+          guide = guide_path.read_text(encoding="utf-8")
+          primer = primer_path.read_text(encoding="utf-8")
 
-          def replace_exact(text: str, old: str, new: str) -> str:
+          def decode(value: str) -> str:
+              return base64.b64decode(value).decode("utf-8")
+
+          STAGE2A = decode("CiMjIFN0YWdlIDJBIC0gT3B0aW9uYWwgQ29kZXggd29ya3RyZWUgc2V0dXAgYW5kIGNsZWFudXAgc2NyaXB0cwoKRm9yIHByb2plY3RzIHRoYXQgdXNlIENvZGV4IHdvcmt0cmVlcywga2VlcCByZXBlYXRhYmxlIHNldHVwIGFuZCBjbGVhbnVwIGxvZ2ljIGluIHJlcG8gc2NyaXB0cyBpbnN0ZWFkIG9mIHJlcGVhdGluZyBpdCBpbiBldmVyeSBoYW5kb2ZmLgoKVXNlIHNldHVwIHNjcmlwdHMgdG8gcHJlcGFyZSB0aGUgd29ya3RyZWUgYmVmb3JlIENvZGV4IHN0YXJ0cyBjb2RpbmcuIFVzZSBjbGVhbnVwIHNjcmlwdHMgdG8gcmVtb3ZlIGRpc3Bvc2FibGUgZ2VuZXJhdGVkIGZvbGRlcnMgYWZ0ZXIgYSB3b3JrdHJlZSBpcyBmaW5pc2hlZCBvciBiZWZvcmUgYSBmcmVzaCBpbnN0YWxsLgoKR29vZCBzZXR1cCBzY3JpcHRzIHNob3VsZDoKCi0gcnVuIGZyb20gdGhlIHJlcG8gcm9vdAotIHNob3cgdG9vbCB2ZXJzaW9ucwotIGZldGNoIGFuZCBwcnVuZSBHaXQgcmVmcwotIHN0b3AgaWYgdGhlIHdvcmt0cmVlIGFwcGVhcnMgc3RhbGUsIGRldGFjaGVkIGZyb20ga25vd24gYnJhbmNoIHRpcHMsIGJlaGluZCB1cHN0cmVhbSwgb3IgZGl2ZXJnZWQKLSBjb3B5IGxvY2FsLW9ubHkgZW52aXJvbm1lbnQgZmlsZXMgb25seSBmcm9tIGEgdXNlci1jb250cm9sbGVkIHBhdGgKLSB2YWxpZGF0ZSByZXF1aXJlZCBlbnZpcm9ubWVudCBrZXlzIHdpdGhvdXQgcHJpbnRpbmcgc2VjcmV0IHZhbHVlcwotIGluc3RhbGwgZGVwZW5kZW5jaWVzIHVzaW5nIHRoZSBwcm9qZWN0J3MgcGFja2FnZSBtYW5hZ2VyCi0gZmFpbCBsb3VkbHkgaW5zdGVhZCBvZiBjb250aW51aW5nIHdpdGggYSBwYXJ0aWFsIGVudmlyb25tZW50CgpHb29kIGNsZWFudXAgc2NyaXB0cyBzaG91bGQ6CgotIHJlbW92ZSBvbmx5IGRpc3Bvc2FibGUgZ2VuZXJhdGVkIGZvbGRlcnMKLSBuZXZlciBkZWxldGUgc291cmNlIGZpbGVzLCBkb2NzLCBtaWdyYXRpb25zLCBjb25maWcsIG9yIGxvY2FsIHNlY3JldHMKLSBiZSBzYWZlIHRvIHJ1biBtb3JlIHRoYW4gb25jZQoKS2VlcCBhcHAtc3BlY2lmaWMgZGV0YWlscyBhcyB2YXJpYWJsZXMgbmVhciB0aGUgdG9wIG9mIHRoZSBzY3JpcHQuCgpHZW5lcmljIGNsZWFudXAgdGVtcGxhdGU6CgpgYGBwb3dlcnNoZWxsCiRFcnJvckFjdGlvblByZWZlcmVuY2UgPSAiU3RvcCIKCldyaXRlLUhvc3QgIlJ1bm5pbmcgQ29kZXggY2xlYW51cCBzY3JpcHQgZnJvbToiIChHZXQtTG9jYXRpb24pCgokcGF0aHNUb1JlbW92ZSA9IEAoCiAgIi5uZXh0IiwKICAibm9kZV9tb2R1bGVzIiwKICAiY292ZXJhZ2UiLAogICJwbGF5d3JpZ2h0LXJlcG9ydCIsCiAgInRlc3QtcmVzdWx0cyIsCiAgIi52ZXJjZWwiLAogICIudHVyYm8iCikKCmZvcmVhY2ggKCRwYXRoIGluICRwYXRoc1RvUmVtb3ZlKSB7CiAgaWYgKFRlc3QtUGF0aCAkcGF0aCkgewogICAgV3JpdGUtSG9zdCAiUmVtb3ZpbmcgZGlzcG9zYWJsZSBwYXRoOiAkcGF0aCIKICAgIFJlbW92ZS1JdGVtIC1SZWN1cnNlIC1Gb3JjZSAkcGF0aCAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZQogIH0gZWxzZSB7CiAgICBXcml0ZS1Ib3N0ICJOb3QgcHJlc2VudCwgc2tpcHBpbmc6ICRwYXRoIgogIH0KfQoKV3JpdGUtSG9zdCAiQ29kZXggY2xlYW51cCBjb21wbGV0ZS4iCmBgYAoKR2VuZXJpYyBzZXR1cCB0ZW1wbGF0ZToKCmBgYHBvd2Vyc2hlbGwKJEVycm9yQWN0aW9uUHJlZmVyZW5jZSA9ICJTdG9wIgoKIyBBcHAtc3BlY2lmaWMgc2V0dGluZ3MKJFNvdXJjZUVudlBhdGggPSAie3tPcHRpb25hbCBwYXRoIHRvIHNvdXJjZSAuZW52LmxvY2FsLCBvciBsZWF2ZSBibGFua319fSIKJFJlcXVpcmVkRW52S2V5cyA9IEAoCiAgInt7T1BUSU9OQUxfUkVRVUlSRURfRU5WX0tFWX19IgopCiRSZXF1aXJlZFJlcG9GaWxlcyA9IEAoCiAgInBhY2thZ2UuanNvbiIKKQokSW5zdGFsbENvbW1hbmQgPSAibnBtIGluc3RhbGwiCgpXcml0ZS1Ib3N0ICI9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09IgpXcml0ZS1Ib3N0ICJDb2RleCBXb3JrdHJlZSBTZXR1cCIKV3JpdGUtSG9zdCAiPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSIKV3JpdGUtSG9zdCAiV29ya2luZyBkaXJlY3Rvcnk6IiAoR2V0LUxvY2F0aW9uKQpXcml0ZS1Ib3N0ICIiCgpXcml0ZS1Ib3N0ICJUb29sIHZlcnNpb25zOiIKZ2l0IC0tdmVyc2lvbgppZiAoR2V0LUNvbW1hbmQgbm9kZSAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZSkgeyBub2RlIC12IH0KaWYgKEdldC1Db21tYW5kIG5wbSAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZSkgeyBucG0gLXYgfQppZiAoR2V0LUNvbW1hbmQgZ2ggLUVycm9yQWN0aW9uIFNpbGVudGx5Q29udGludWUpIHsgZ2ggLS12ZXJzaW9uIH0KV3JpdGUtSG9zdCAiIgoKV3JpdGUtSG9zdCAiRmV0Y2hpbmcgbGF0ZXN0IEdpdCByZWZzLi4uIgpnaXQgZmV0Y2ggLS1hbGwgLS1wcnVuZQppZiAoJExBU1RFWElUQ09ERSAtbmUgMCkgewogIHRocm93ICJHaXQgZmV0Y2ggZmFpbGVkLiBDYW5ub3QgdmVyaWZ5IHdvcmt0cmVlIGZyZXNobmVzcy4iCn0KCiRoZWFkID0gKGdpdCByZXYtcGFyc2UgSEVBRCkuVHJpbSgpCmlmICgkTEFTVEVYSVRDT0RFIC1uZSAwIC1vciBbc3RyaW5nXTo6SXNOdWxsT3JXaGl0ZVNwYWNlKCRoZWFkKSkgewogIHRocm93ICJVbmFibGUgdG8gZGV0ZXJtaW5lIGN1cnJlbnQgSEVBRC4iCn0KCmdyaXRlLUhvc3QgIkN1cnJlbnQgSEVBRDogJGhlYWQiCgokbWF0Y2hpbmdMb2NhbEJyYW5jaGVzID0gQCgKICBnaXQgZm9yLWVhY2gtcmVmIHJlZnMvaGVhZHMgLS1mb3JtYXQ9JyUocmVmbmFtZTpzaG9ydCkgJShvYmplY3RuYW1lKScgfAogICAgRm9yRWFjaC1PYmplY3QgewogICAgICAkcGFydHMgPSAkXyAtc3BsaXQgJ1xzKycKICAgICAgaWYgKCRwYXJ0cy5MZW5ndGggLWdlIDIgLWFuZCAkcGFydHNbMV0gLWVxICRoZWFkKSB7CiAgICAgICAgJHBhcnRzWzBdCiAgICAgIH0KICAgIH0KKQoKJG1hdGNoaW5nUmVtb3RlQnJhbmNoZXMgPSBAKAogIGdpdCBmb3ItZWFjaC1yZWYgcmVmcy9yZW1vdGVzIC0tZm9ybWF0PSclKHJlZm5hbWU6c2hvcnQpICUob2JqZWN0bmFtZSknIHwKICAgIFdoZXJlLU9iamVjdCB7IC1ub3QgJF8uU3RhcnRzV2l0aCgib3JpZ2luL0hFQUQgIikgfSB8CiAgICBGb3JFYWNoLU9iamVjdCB7CiAgICAgICRwYXJ0cyA9ICRfIC1zcGxpdCAnXHMrJwogICAgICBpZiAoJHBhcnRzLkxlbmd0aCAtZ2UgMiAtYW5kICRwYXJ0c1sxXSAtZXEgJGhlYWQpIHsKICAgICAgICAkcGFydHNbMF0KICAgICAgfQogICAgfQopCgppZiAoJG1hdGNoaW5nTG9jYWxCcmFuY2hlcy5Db3VudCAtZXEgMCAtYW5kICRtYXRjaGluZ1JlbW90ZUJyYW5jaGVzLkNvdW50IC1lcSAwKSB7CiAgZ2l0IGxvZyAtLW9uZWxpbmUgLS1kZWNvcmF0ZSAtNQogIHRocm93ICJTdG9wcGluZyBzZXR1cDogdGhpcyB3b3JrdHJlZSBIRUFEIGlzIG5vdCB0aGUgY3VycmVudCB0aXAgb2YgYW55IGtub3duIGxvY2FsIG9yIHJlbW90ZSBicmFuY2ggYWZ0ZXIgZmV0Y2guIgp9Cgpmb3JlYWNoICgkZmlsZSBpbiAkUmVxdWlyZWRSZXBvRmlsZXMpIHsKICBpZiAoLW5vdCAoVGVzdC1QYXRoICRmaWxlKSkgewogICAgdGhyb3cgIlJlcXVpcmVkIHJlcG8gZmlsZSBub3QgZm91bmQ6ICRmaWxlLiBSdW4gdGhpcyBzY3JpcHQgZnJvbSB0aGUgcHJvamVjdCByb290IG9yIHVwZGF0ZSBSZXF1aXJlZFJlcG9GaWxlcy4iCiAgfQp9CgokdGFyZ2V0RW52ID0gSm9pbi1QYXRoIChHZXQtTG9jYXRpb24pICIuZW52LmxvY2FsIgoKaWYgKC1ub3QgKFRlc3QtUGF0aCAkdGFyZ2V0RW52KSAtYW5kIC1ub3QgW3N0cmluZ106OklzTnVsbE9yV2hpdGVTcGFjZSgkU291cmNlRW52UGF0aCkpIHsKICBpZiAoLW5vdCAoVGVzdC1QYXRoICRTb3VyY2VFbnZQYXRoKSkgewogICAgdGhyb3cgIi5lbnYubG9jYWwgbWlzc2luZyBpbiB3b3JrdHJlZSBhbmQgc291cmNlIHBhdGggZG9lcyBub3QgZXhpc3Q6ICRTb3VyY2VFbnZQYXRoIgogIH0KCiAgQ29weS1JdGVtICRTb3VyY2VFbnZQYXRoICR0YXJnZXRFbnYgLUZvcmNlIC1FcnJvckFjdGlvbiBTdG9wCiAgV3JpdGUtSG9zdCAiLmVudi5sb2NhbCBjb3BpZWQgaW50byB3b3JrdHJlZS4iCn0KCmlmICgkUmVxdWlyZWRFbnZLZXlzLkNvdW50IC1ndCAwKSB7CiAgaWYgKC1ub3QgKFRlc3QtUGF0aCAkdGFyZ2V0RW52KSkgewogICAgdGhyb3cgIi5lbnYubG9jYWwgaXMgcmVxdWlyZWQgYnV0IG1pc3NpbmcuIgogIH0KCiAgZm9yZWFjaCAoJGtleSBpbiAkUmVxdWlyZWRFbnZLZXlzKSB7CiAgICBpZiAoW3N0cmluZ106OklzTnVsbE9yV2hpdGVTcGFjZSgka2V5KSAtb3IgJGtleS5Db250YWlucygie3siKSkgewogICAgICBjb250aW51ZQogICAgfQoKICAgIGlmICgtbm90IChTZWxlY3QtU3RyaW5nIC1QYXRoICR0YXJnZXRFbnYgLVBhdHRlcm4gIl4ka2V5PSIgLVF1aWV0KSkgewogICAgICB0aHJvdyAiJGtleSBtaXNzaW5nIGZyb20gLmVudi5sb2NhbCIKICAgIH0KICB9CgogIFdyaXRlLUhvc3QgIi5lbnYubG9jYWwgdmFsaWRhdGlvbiBwYXNzZWQuIgp9CgppZiAoLW5vdCBbc3RyaW5nXTo6SXNOdWxsT3JXaGl0ZVNwYWNlKCRJbnN0YWxsQ29tbWFuZCkpIHsKICBXcml0ZS1Ib3N0ICJSdW5uaW5nIGRlcGVuZGVuY3kgaW5zdGFsbCBjb21tYW5kOiAkSW5zdGFsbENvbW1hbmQiCiAgSW52b2tlLUV4cHJlc3Npb24gJEluc3RhbGxDb21tYW5kCgogIGlmICgkTEFTVEVYSVRDT0RFIC1uZSAwKSB7CiAgICB0aHJvdyAiRGVwZW5kZW5jeSBpbnN0YWxsIGNvbW1hbmQgZmFpbGVkLiIKICB9Cn0KCldyaXRlLUhvc3QgIiIKV3JpdGUtSG9zdCAiPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSIKV3JpdGUtSG9zdCAiQ29kZXggZW52aXJvbm1lbnQgc2V0dXAgY29tcGxldGUuIgpXcml0ZS1Ib3N0ICI9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09IgpgYGAK")
+          LOOP_A = decode("IyMgTG9vcCBTdGVwIEEgLSBHcm91bmQgYSBuZXcgQ2hhdEdQVCBjaGF0IGluIHRoZSByZXBvCgpVc2UgdGhpcyBhdCB0aGUgc3RhcnQgb2YgYSBuZXcgQ2hhdEdQVCBjaGF0LCBhZnRlciBjYW1wYWlnbiBjbG9zZW91dCwgb3Igd2hlbmV2ZXIgdGhlIGNoYXQgY29udGV4dCBmZWVscyBzdGFsZS4gVGhpcyBzdGVwIGlzIG9ubHkgZm9yIGdyb3VuZGluZy4gRG8gbm90IHBsYW4gbmV3IHdvcmsgaGVyZTsgdXNlIFN0ZXAgQiBvciBTdGVwIEMgZm9yIHRoYXQuCgpgYGBtZApJIGFtIHN0YXJ0aW5nIGEgbmV3IENoYXRHUFQgY2hhdCBmb3IgYW4gZXhpc3RpbmcgcHJvamVjdC4KClRhcmdldCBicmFuY2g6Cnt7V2hhdCBpcyB0aGUgdGFyZ2V0IGJyYW5jaD99fQoKUGxlYXNlIHJlLWVzdGFibGlzaCBjb250ZXh0IGJ5IGluc3BlY3RpbmcgcmVwbyBkb2NzIGF0IHRoZSB0YXJnZXQgYnJhbmNoOgotIEFHRU5UUy5tZAotIGRvY3MvcHJvZHVjdC5tZAotIGRvY3MvYXJjaGl0ZWN0dXJlLm1kCi0gZG9jcy9yb2FkbWFwLm1kCi0gZG9jcy9jdXJyZW50LXRhc2subWQKLSBhY3RpdmUgZG9jcy9jYW1wYWlnbnMvKi5tZCBpZiByZWxldmFudAoKUnVsZXM6Ci0gVHJlYXQgcmVwbyBkb2NzIGFzIGF1dGhvcml0YXRpdmUuCi0gRG8gbm90IHJlbHkgb24gbWVtb3J5IGZyb20gcHJpb3IgY2hhdHMuCi0gSWYgY29ubmVjdG9yIGFjY2VzcyBpcyB1bmF2YWlsYWJsZSwgYXNrIG1lIGZvciBvbmx5IHRoZSBzbWFsbGVzdCBtaXNzaW5nIGZpbGUuCi0gSWYgZG9jcyBjb25mbGljdCwgY2FsbCBvdXQgdGhlIGNvbmZsaWN0IGJlZm9yZSByZWNvbW1lbmRpbmcgbmV4dCBzdGVwcy4KCkFmdGVyIHJlYWRpbmcgdGhlIGRvY3MsIHN1bW1hcml6ZToKMS4gY3VycmVudCBwcm9kdWN0IGRpcmVjdGlvbgoyLiBjdXJyZW50IGFyY2hpdGVjdHVyZS9zdGF0ZQozLiBhY3RpdmUgd29yayBpdGVtIG9yIGNhbXBhaWduCjQuIG5leHQgYWN0aW9uIGFjY29yZGluZyB0byBkb2NzL2N1cnJlbnQtdGFzay5tZAo1LiBhbnkgZG9jIGNvbmZsaWN0cyBvciBzdGFsZSBhcmVhcwpgYGAKCgo=")
+          LOOP_B_BODY = decode("UGxhbiB0aGUgbmV4dCB3b3JrIGl0ZW0KClVzZSB0aGlzIGZvciBhIGNhbXBhaWduLCBhIHN0YW5kYWxvbmUgc2xpY2UsIG9yIGEgcGF0Y2guIENhbXBhaWduIHBsYW5uaW5nIGlzIHBhcnQgb2YgdGhlIHJlcGVhdGFibGUgbG9vcCwgbm90IGp1c3QgZmlyc3QtdGltZSBzZXR1cC4KCgpgYGBtZApCZWZvcmUgcGxhbm5pbmcsIGRvIGEgZnJlc2ggc291cmNlLW9mLXRydXRoIGNoZWNrIHVzaW5nIHJlcG8gZG9jcyBhdCB0aGUgdGFyZ2V0IGJyYW5jaC4KCldvcmsgbW9kZToKe3tXaGljaCB3b3JrIHR5cGUgZG8geW91IHdhbnQgdG8gZG8/IChDYW1wYWlnbiwgU2luZ2xlIHNsaWNlLCBvciBQYXRjaCl9fQoKVGFyZ2V0IGJyYW5jaDoKe3tXaGF0IGlzIHRoZSB0YXJnZXQgYnJhbmNoP319CgpDdXJyZW50IG9iamVjdGl2ZToKe3tXaGF0IGRvIHlvdSB3YW50IHRvIGFjY29tcGxpc2g/fX0KCkFkZGl0aW9uYWwgY29udGV4dDoKe3tBbnl0aGluZyBpbXBvcnRhbnQgdGhhdCBpcyBub3QgYWxyZWFkeSBpbiByZXBvIGRvY3MsIG9yIHdyaXRlICJub25lIn19CgpQbGVhc2UgaW5zcGVjdCB0aGUgY29uZmlndXJlZCBHaXRIdWIgcmVwbyBhdCB0aGUgdGFyZ2V0IGJyYW5jaCwgb3IgYXNrIG1lIGZvciBvbmx5IHRoZSBzbWFsbGVzdCBtaXNzaW5nIGZpbGUgaWYgY29ubmVjdG9yIGFjY2VzcyBpcyB1bmF2YWlsYWJsZToKLSBBR0VOVFMubWQKLSBkb2NzL3Byb2R1Y3QubWQKLSBkb2NzL2FyY2hpdGVjdHVyZS5tZAotIGRvY3Mvcm9hZG1hcC5tZAotIGRvY3MvY3VycmVudC10YXNrLm1kCi0gYWN0aXZlIGRvY3MvY2FtcGFpZ25zLyoubWQgaWYgcmVsZXZhbnQKCklmIFdvcmsgbW9kZSBpcyBDQU1QQUlHTiwgcHJvZHVjZSBhIGNhbXBhaWduIGRvY3VtZW50IHdpdGg6CjEuIG9iamVjdGl2ZSBhbmQgdGFyZ2V0IHN0YXRlCjIuIGN1cnJlbnQgc3RhdGUgYW5kIHNvdXJjZS1vZi10cnV0aCBub3RlcwozLiBzY29wZSBhbmQgbm9uLWdvYWxzCjQuIHNsaWNlIHBsYW4KNS4gYWNjZXB0YW5jZSBjcml0ZXJpYSBwZXIgc2xpY2UKNi4gdmFsaWRhdGlvbiBhbmQgbWFudWFsIFFBIGV4cGVjdGF0aW9ucwo3LiBzdG9wIGNvbmRpdGlvbnMgYW5kIGNhbXBhaWduIGNvbXBsZXRpb24gY3JpdGVyaWEKOC4gZm9sbG93LXVwIGJhY2tsb2cKCklmIFdvcmsgbW9kZSBpcyBTSU5HTEVfU0xJQ0UsIHByb2R1Y2UgYSBjb25jaXNlIGltcGxlbWVudGF0aW9uIHBsYW4gd2l0aDoKMS4gZ29hbCBhbmQgc2NvcGUKMi4gbm9uLWdvYWxzCjMuIGFjY2VwdGFuY2UgY3JpdGVyaWEKNC4gdmFsaWRhdGlvbiBhbmQgZG9jcyB1cGRhdGUgZXhwZWN0YXRpb25zCjUuIHN0b3AgY29uZGl0aW9ucwoKSWYgV29yayBtb2RlIGlzIFBBVENILCBwcm9kdWNlIGEgbmFycm93IHBhdGNoIHBsYW4gd2l0aDoKMS4gaXNzdWVzIHRvIGZpeCBhbmQgZXhwZWN0ZWQgYmVoYXZpb3IKMi4gbm9uLWdvYWxzCjMuIGFjY2VwdGFuY2UgY3JpdGVyaWEKNC4gdmFsaWRhdGlvbiBleHBlY3RhdGlvbnMKNS4gcmlza3MKClRoZSBwbGFuIHNob3VsZCBzdXBwb3J0IGxhcmdlIHN3YXRocyB3aGVuIGFwcHJvcHJpYXRlLCBidXQga2VlcCBlYWNoIGltcGxlbWVudGF0aW9uIHN0ZXAgaW5kZXBlbmRlbnRseSByZXZpZXdhYmxlLgpgYGAKCgo=")
+          LOOP_F = decode("IyMgTG9vcCBTdGVwIEYgLSBQYXRjaCB3aGVuIG5lZWRlZAoKCmBgYG1kCkNyZWF0ZSBhIG5hcnJvdyBDb2RleC1yZWFkeSBwYXRjaCBoYW5kb2ZmLgoKQnJhbmNoIHRvIHBhdGNoOgp7e1doYXQgYnJhbmNoIHNob3VsZCBDb2RleCBwYXRjaD99fQoKSXNzdWVzIHRvIGZpeDoKe3tMaXN0IHRoZSBpc3N1ZXMgdGhpcyBwYXRjaCBzaG91bGQgZml4fX0KCkFkZGl0aW9uYWwgY29udGV4dDoKe3tBbnl0aGluZyBDb2RleCBuZWVkcyB0aGF0IGlzIG5vdCBhbHJlYWR5IGluIHJlcG8gZG9jcywgb3Igd3JpdGUgIm5vbmUifX0KClBsZWFzZSBpbnNwZWN0IHJlcG8gZG9jcyBhdCB0aGUgdGFyZ2V0IGJyYW5jaCBpZiBjdXJyZW50IHN0YXRlIG1hdHRlcnMuIFRoZW4gZ2VuZXJhdGUgYSBjb25jaXNlIHBhdGNoIGhhbmRvZmYgd2l0aDoKMS4gZ29hbAoyLiBzb3VyY2Utb2YtdHJ1dGggZG9jcyB0byBpbnNwZWN0CjMuIHNjb3BlCjQuIG5vbi1nb2Fscwo1LiBhY2NlcHRhbmNlIGNyaXRlcmlhCjYuIHZhbGlkYXRpb24gZXhwZWN0YXRpb25zCjcuIGRvY3VtZW50YXRpb24gZGVsdGEgZXhwZWN0YXRpb25zCjguIGZpbmFsIHJlcG9ydGluZyBleHBlY3RhdGlvbnMKClJ1bGVzOgotIE9ubHkgZml4IHRoZSBsaXN0ZWQgaXNzdWVzLgotIERvIG5vdCByZWRlc2lnbiBhZGphY2VudCBmbG93cy4KLSBEbyBub3Qgc3RhcnQgdGhlIG5leHQgY2FtcGFpZ24gc2xpY2UgdW5sZXNzIGV4cGxpY2l0bHkgcmVxdWVzdGVkLgotIERvIG5vdCBjaGFuZ2Ugc2NoZW1hL2F1dGgvZGVwbG95bWVudCB1bmxlc3MgcmVxdWlyZWQgYW5kIHJlcG9ydGVkIGZpcnN0LgotIERvIG5vdCByZXdyaXRlIHVucmVsYXRlZCBjb2RlLgoKRmluYWwgcmVwb3J0IG11c3QgaW5jbHVkZToKLSBicmFuY2gKLSBjb21taXQKLSBmaWxlcyBjaGFuZ2VkCi0gdmFsaWRhdGlvbiByZXN1bHRzCi0gZG9jdW1lbnRhdGlvbiBkZWx0YQotIG1hbnVhbCBRQSB7cmVjb21tZW5kYXRpb25zCi0gcmVtYWluaW5nIHJpc2tzIG9yIGZvbGxvdy11cHMKCktlZXAgdGhpcyBoYW5kb2ZmIHNob3J0IGFuZCBjb3B5LXBhc3RlIHJlYWR5LgpgYGAKCgo=")
+          LOOP_G_BODY = decode("Q2xvc2UgdGhlIGNhbXBhaWduIG9yIHBoYXNlCgpXaGVuIGEgY2FtcGFpZ24gb3IgbWFqb3IgcGhhc2UgaXMgY29tcGxldGUsIGNsb3NlIGl0IG91dCwgdXBkYXRlIGRvY3MsIGFuZCB1c3VhbGx5IHN0YXJ0IGEgbmV3IENoYXRHUFQgY2hhdCBmb3IgdGhlIG5leHQgY2FtcGFpZ24gb3IgcGhhc2UuCgoKYGBgbWQKSGVscCBtZSBjbG9zZSBvdXQgdGhpcyB3b3JrIGl0ZW0gYW5kIHByZXBhcmUgdGhlIHByb2plY3QgZm9yIHRoZSBuZXh0IHN0YWdlLgoKVGFyZ2V0IGJyYW5jaDoKe3tXaGF0IGlzIHRoZSB0YXJnZXQgYnJhbmNoP319CgpXb3JrIGl0ZW0gdG8gY2xvc2U6Cnt7V2hpY2ggY2FtcGFpZ24sIHNsaWNlLCBwYXRjaCwgb3IgcGhhc2UgaXMgYmVpbmcgY2xvc2VkIG91dD99fQoKS25vd24gcmVtYWluaW5nIGlzc3VlczoKe3tMaXN0IGFueXRoaW5nIEkgYWxyZWFkeSBrbm93LCBvciB3cml0ZSAibm9uZSJ9fQoKUGxlYXNlIGRvIGEgZnJlc2ggc291cmNlLW9mLXRydXRoIGNoZWNrIHVzaW5nIHJlcG8gZG9jcyBhdCB0aGUgdGFyZ2V0IGJyYW5jaC4gSWYgY29ubmVjdG9yIGFjY2VzcyBpcyB1bmF2YWlsYWJsZSwgYXNrIG1lIGZvciBvbmx5IHRoZSBzbWFsbGVzdCBtaXNzaW5nIGZpbGUgZnJvbToKLSBBR0VOVFMubWQKLSBkb2NzL3Byb2R1Y3QubWQKLSBkb2NzL2FyY2hpdGVjdHVyZS5tZAotIGRvY3Mvcm9hZG1hcC5tZAotIGRvY3MvY3VycmVudC10YXNrLm1kCi0gYWN0aXZlIGNhbXBhaWduIGRvYyBpZiByZWxldmFudAoKVGhlbiByZWNvbW1lbmQ6CjEuIHdoZXRoZXIgdGhlIHdvcmsgaXRlbSBhcHBlYXJzIGNvbXBsZXRlCjIuIHdoYXQgZG9jcyBzaG91bGQgYmUgdXBkYXRlZAp3My4gd2hhdCBvbGQgY29udGV4dCBzaG91bGQgYmUgYXJjaGl2ZWQgb3IgcmVtb3ZlZCBmcm9tIHRoZSBob3QgcGF0aAo0LiB3aGF0IGRvY3MvY3VycmVudC10YXNrLm1kIHNob3VsZCBzYXkgbmV4dAo1LiB3aGV0aGVyIHRoZSBuZXh0IHN0ZXAgc2hvdWxkIGJlIGEgcGF0Y2gsIG5ldyBjYW1wYWlnbiwgc3RhbmRhbG9uZSBzbGljZSwgcHJvZHVjdGlvbiBoYXJkZW5pbmcsIG9yIHBhdXNlCjYuIHdoZXRoZXIgSSBzaG91bGQgc3RhcnQgYSBuZXcgQ2hhdEdQVCBjaGF0IGZvciB0aGUgbmV4dCBwaGFzZQo3LiBhIENvZGV4LXJlYWR5IGRvY3MtdXBkYXRlIGhhbmRvZmYgaWYgbmVlZGVkCmBgYAoK")
+          FRESHNESS = decode("IyBEb2N1bWVudGF0aW9uIGZyZXNobmVzcyBzeXN0ZW0KClVzZSBgZG9jcy9jdXJyZW50LXRhc2subWRgIGFzIHRoZSBhY3RpdmUgd29yayBwb2ludGVyIGZvciBjdXJyZW50IHN0YXR1cyBhbmQgbmV4dCBhY3Rpb24uCgpDb2RleCBtdXN0IHVwZGF0ZSBgZG9jcy9jdXJyZW50LXRhc2subWRgIGFmdGVyIGV2ZXJ5IGltcGxlbWVudGF0aW9uLiBVcGRhdGUgY2FtcGFpZ24gZG9jcyB3aGVuIHNsaWNlIHN0YXR1cyBjaGFuZ2VzLiBVcGRhdGUgYXJjaGl0ZWN0dXJlIG9yIHJvYWRtYXAgZG9jcyBvbmx5IHdoZW4gdGhlIHdvcmsgY2hhbmdlcyBhcmNoaXRlY3R1cmUsIHJvdXRlcywgc2VydmljZXMsIGRlcGxveW1lbnQsIG1pbGVzdG9uZSBzdGF0dXMsIHNjb3BlLCBvciBzZXF1ZW5jaW5nLgoKQ2hhdEdQVCBzaG91bGQgdXNlIHRoZSBjb25maWd1cmVkIEdpdEh1YiBjb25uZWN0b3IgdG8gaW5zcGVjdCByZXBvIGRvY3MgYXQgdGhlIHRhcmdldCBicmFuY2ggd2hlbmV2ZXIgY3VycmVudCBzdGF0ZSBtYXR0ZXJzLiBDaGF0IG1lbW9yeSBhbmQgcHJpb3IgZmluYWwgcmVwb3J0cyBhcmUgb3JpZW50YXRpb24gb25seTsgcmVwbyBkb2NzIGFyZSBhdXRob3JpdGF0aXZlLgoKIyMgRG9jdW1lbnRhdGlvbiBkZWx0YQoKRXZlcnkgQ29kZXggZmluYWwgcmVwb3J0IHNob3VsZCBpbmNsdWRlOgoKYGBgbWQKRG9jdW1lbnRhdGlvbiBkZWx0YToKLSBkb2NzL2N1cnJlbnQtdGFzay5tZDoge3tTdW1tYXJpemUgd2hhdCBjaGFuZ2VkIGluIGRvY3MvY3VycmVudC10YXNrLm1kfX0KLSBjYW1wYWlnbiBkb2MsIGlmIGFwcGxpY2FibGU6IHt7U3VtbWFyaXplIHdoYXQgY2hhbmdlZCwgb3Igd3JpdGUgIm5vdCBhcHBsaWNhYmxlIn19Ci0gZG9jcy9hcmNoaXRlY3R1cmUubWQ6IHt7U3VtbWFyaXplIHdoYXQgY2hhbmdlZCwgb3Igd3JpdGUgIm5vdCBhcHBsaWNhYmxlIn19Ci0gZG9jcy9yb2FkbWFwLm1kOiB7e1N1bW1hcml6ZSB3aGF0IGNoYW5nZWQsIG9yIHdyaXRlICJub3QgYXBwbGljYWJsZSJ9fQpgYGAKCg==")
+          CURRENT_STATE = decode("IyBDdXJyZW50LXN0YXRlIHByb3RvY29sCgpVc2UgdGhpcyB3aGVuZXZlciBDaGF0R1BUIG1pZ2h0IGJlIHN0YWxlLgoKCmBgYG1kCkJlZm9yZSBhbnN3ZXJpbmcsIGRvIGEgZnJlc2ggc291cmNlLW9mLXRydXRoIGNoZWNrIGZvciB0aGlzIHByb2plY3QuCgpDdXJyZW50IHNpdHVhdGlvbjoKe3tCcmllZmx5IGRlc2NyaWJlIHdoeSB5b3UgbmVlZCBhIHNvdXJjZS1vZi10cnV0aCBjaGVja319fQoKVGFyZ2V0IGJyYW5jaDoKe3tXaGF0IGlzIHRoZSB0YXJnZXQgYnJhbmNoP319CgpQbGVhc2UgaW5zcGVjdCByZXBvIGRvY3MgYXQgdGhlIHRhcmdldCBicmFuY2ggZm9yIHRoZSBsYXRlc3QgdmVyc2lvbnMgb2Y6Ci0gQUdFTlRTLm1kCi0gZG9jcy9wcm9kdWN0Lm1kCi0gZG9jcy9hcmNoaXRlY3R1cmUubWQKLSBkb2NzL3JvYWRtYXAubWQKLSBkb2NzL2N1cnJlbnQtdGFzay5tZAotIGFjdGl2ZSBkb2NzL2NhbXBhaWducy8qLm1kIGlmIHJlbGV2YW50CgpSdWxlczoKLSBEbyBub3QgcmVseSBvbiBtZW1vcnkgb3IgcHJpb3IgY2hhdCBhc3N1bXB0aW9ucy4KLSBUcmVhdCByZXBvIGRvY3MgYXMgYXV0aG9yaXRhdGl2ZS4KLSBJZiBjb25uZWN0b3IgYWNjZXNzIGlzIHVuYXZhaWxhYmxlIG9yIGEgZmlsZSBpcyBtaXNzaW5nLCBhc2sgbWUgdG8gcGFzdGUgb3IgdXBsb2FkIG9ubHkgdGhlIHNwZWNpZmljIG1pc3NpbmcgZmlsZXMuCi0gSWYgdGhlIGJyYW5jaCBpcyB1bm1lcmdlZCwgZG8gbm90IGFzc3VtZSBtYWluIGluY2x1ZGVzIHRoZSBicmFuY2ggY2hhbmdlcy4KLSBJZiBkb2NzIGNvbmZsaWN0LCBjYWxsIG91dCB0aGUgY29uZmxpY3QgYmVmb3JlIG1ha2luZyByZWNvbW1lbmRhdGlvbnMuCgpBZnRlciB0aGUgc291cmNlLW9mLXRydXRoIGNoZWNrLCBhbnN3ZXIgbXkgcmVxdWVzdDoKe3tXaGF0IGRvIHlvdSB3YW50IENoYXRHUFQgdG8gYW5zd2VyIG9yIGhlbHAgd2l0aD99fQpgYGAKCg==")
+          OPERATING = decode("IyBPcGVyYXRpbmcgcnVsZXMKCjEuIFRoZSByZXBvIGlzIHRoZSBkdXJhYmxlIG1lbW9yeS4gQ2hhdHMgYXJlIHRlbXBvcmFyeS4KMi4gQ29kZXggb3ducyBkb2MgZnJlc2huZXNzIGR1cmluZyBpbXBsZW1lbnRhdGlvbi4KMy4gYGRvY3MvY3VycmVudC10YXNrLm1kYCBtdXN0IGJlIHVwZGF0ZWQgYWZ0ZXIgZXZlcnkgaW1wbGVtZW50YXRpb24uCjQuIEV2ZXJ5IENvZGV4IGZpbmFsIHJlcG9ydCBtdXN0IGluY2x1ZGUgYSBkb2N1bWVudGF0aW9uIGRlbHRhLgo1LiBLZWVwIGhvdCBjb250ZXh0IHNtYWxsOiBgQUdFTlRTLm1kYCwgcHJvZHVjdCwgYXJjaGl0ZWN0dXJlLCByb2FkbWFwLCBjdXJyZW50LXRhc2ssIGFuZCB0aGUgYWN0aXZlIGNhbXBhaWduIGRvYy4KNi4gVXNlIGNhbXBhaWducyBmb3IgbGFyZ2Ugc3dhdGhzIG9mIHdvcmsgYW5kIHBhdGNoZXMgZm9yIG5hcnJvdyBmaXhlcy4KNy4gQ29uZmlndXJlIENoYXRHUFQsIEdpdEh1YiByZXBvIGFjY2VzcywgYW5kIENvZGV4IGJlZm9yZSByZWx5aW5nIG9uIHRoZW0uCjguIEluc3BlY3QgcmVwbyBkb2NzIHRocm91Z2ggdGhlIGNvbmZpZ3VyZWQgR2l0SHViIGNvbm5lY3RvciBiZWZvcmUgYXNraW5nIGZvciBwYXN0ZWQgZG9jcyB3aGVuIGN1cnJlbnQgc3RhdGUgbWF0dGVycy4KOS4gVXNlIFdpbmRvd3MgKyBQb3dlclNoZWxsIGJ5IGRlZmF1bHQuCjEwLiBLZWVwIENvZGV4IHdvcmt0cmVlIHNldHVwIGluIENvZGV4IGNvbmZpZ3VyYXRpb24gb3IgaGVscGVyIHNjcmlwdHMsIG5vdCBub3JtYWwgaGFuZG9mZnMuCjExLiBTdG9wIHdoZW4gZG9jcyBjb25mbGljdC4KMTIuIEFyY2hpdmUgb2xkIGhhbmRvZmZzLCBvYnNvbGV0ZSBjYW1wYWlnbiBkb2NzLCBsb25nIHNsaWNlIGxvZ3MsIGFuZCBzdGFsZSBpbnN0cnVjdGlvbnMuCgo=")
+          OLD_PRIMER_FRESHNESS = decode("IyMgRG9jdW1lbnRhdGlvbiBmcmVzaG5lc3MKCkNvZGV4IG93bnMgZG9jdW1lbnRhdGlvbiBmcmVzaG5lc3MgZHVyaW5nIGltcGxlbWVudGF0aW9uLiBFdmVyeSBpbXBsZW1lbnRhdGlvbiBzaG91bGQgdXBkYXRlIGBkb2NzL2N1cnJlbnQtdGFzay5tZGAuIFVwZGF0ZSBjYW1wYWlnbiBkb2NzIHdoZW4gc2xpY2Ugc3RhdHVzIGNoYW5nZXMuIFVwZGF0ZSBhcmNoaXRlY3R1cmUgb3Igcm9hZG1hcCBkb2NzIG9ubHkgd2hlbiB0aGUgd29yayBjaGFuZ2VzIGFyY2hpdGVjdHVyZSwgcm91dGVzLCBzZXJ2aWNlcywgZGVwbG95bWVudCwgbWlsZXN0b25lIHN0YXR1cywgc2NvcGUsIG9yIHNlcXVlbmNpbmcuCgpFdmVyeSBDb2RleCBmaW5hbCByZXBvcnQgc2hvdWxkIGluY2x1ZGUgYSBkb2N1bWVudGF0aW9uIGRlbHRhIGFuZCBhIGNvbXBhY3Qgc3RhdGUgcGFja2V0LgoKVGhlIHN0YXRlIHBhY2tldCBpcyBub3QgYSBzb3VyY2Ugb2YgdHJ1dGguIEl0IGlzIGEgdHJhbnNpdGlvbiBub3RlIHRoYXQgaGVscHMgdGhlIG5leHQgQ2hhdEdQVCBzZXNzaW9uIG9yaWVudCBxdWlja2x5LiBSZXBvIGRvY3MgcmVtYWluIGF1dGhvcml0YXRpdmUu")
+          NEW_PRIMER_FRESHNESS = decode("IyMgRG9jdW1lbnRhdGlvbiBmcmVzaG5lc3MKCkNvZGV4IG93bnMgZG9jdW1lbnRhdGlvbiBmcmVzaG5lc3MgZHVyaW5nIGltcGxlbWVudGF0aW9uLiBFdmVyeSBpbXBsZW1lbnRhdGlvbiBzaG91bGQgdXBkYXRlIGBkb2NzL2N1cnJlbnQtdGFzay5tZGAuIFVwZGF0ZSBjYW1wYWlnbiBkb2NzIHdoZW4gc2xpY2Ugc3RhdHVzIGNoYW5nZXMuIFVwZGF0ZSBhcmNoaXRlY3R1cmUgb3Igcm9hZG1hcCBkb2NzIG9ubHkgd2hlbiB0aGUgd29yayBjaGFuZ2VzIGFyY2hpdGVjdHVyZSwgcm91dGVzLCBzZXJ2aWNlcywgZGVwbG95bWVudCwgbWlsZXN0b25lIHN0YXR1cywgc2NvcGUsIG9yIHNlcXVlbmNpbmcuCgpFdmVyeSBDb2RleCBmaW5hbCByZXBvcnQgc2hvdWxkIGluY2x1ZGUgYSBkb2N1bWVudGF0aW9uIGRlbHRhIHRoYXQgc2F5cyB3aGljaCBkb2NzIGNoYW5nZWQgYW5kIHdoeS4KCkNoYXRHUFQgc2hvdWxkIGluc3BlY3QgcmVwbyBkb2NzIGF0IHRoZSB0YXJnZXQgYnJhbmNoIHdoZW5ldmVyIGN1cnJlbnQgc3RhdGUgbWF0dGVycy4gUHJpb3IgY2hhdCBjb250ZXh0IGFuZCBmaW5hbCByZXBvcnRzIGFyZSBvcmllbnRhdGlvbiBvbmx5OyByZXBvIGRvY3MgcmVtYWluIGF1dGhvcml0YXRpdmUu")
+
+          def replace_exact(text: str, old: str, new: str, label: str) -> str:
               if old not in text:
-                  raise SystemExit(f'Missing expected text for replacement:\n{old[:200]}')
+                  raise SystemExit(f"Missing expected text for replacement: {label}")
               return text.replace(old, new)
 
           def replace_regex(text: str, pattern: str, replacement: str, label: str) -> str:
               new_text, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
               if count != 1:
-                  raise SystemExit(f'Expected exactly one replacement for {label}, found {count}')
+                  raise SystemExit(f"Expected exactly one replacement for {label}, found {count}")
               return new_text
 
-          # Small wording updates in setup sections.
           guide = replace_exact(
               guide,
-              '13. Repeat: plan work -> generate handoff -> implement -> docs/state update -> QA -> merge or patch.',
-              '13. Repeat: plan work -> generate handoff -> implement -> docs update -> QA -> merge or patch.',
+              "13. Repeat: plan work -> generate handoff -> implement -> docs/state update -> QA -> merge or patch.",
+              "13. Repeat: plan work -> generate handoff -> implement -> docs update -> QA -> merge or patch.",
+              "quick start loop wording",
           )
           guide = replace_exact(
               guide,
-              'Prefer step-by-step guidance, lean Codex handoffs, reviewable slices, clear stop conditions, documentation delta requirements, and final state packets from coding agents.',
-              'Prefer step-by-step guidance, lean Codex handoffs, reviewable slices, clear stop conditions, documentation delta requirements, and clear final reports from coding agents.',
+              "Prefer step-by-step guidance, lean Codex handoffs, reviewable slices, clear stop conditions, documentation delta requirements, and final state packets from coding agents.",
+              "Prefer step-by-step guidance, lean Codex handoffs, reviewable slices, clear stop conditions, documentation delta requirements, and clear final reports from coding agents.",
+              "starter instructions final reports",
           )
           guide = replace_exact(
               guide,
-              '- Treat state packets as transition notes only.\n',
-              '',
+              "- Treat state packets as transition notes only.\n",
+              "",
+              "GitHub source-of-truth state packet rule",
           )
           guide = replace_exact(
               guide,
-              '- The workflow primer covers campaign/slice/patch workflow, documentation freshness, state packets, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.',
-              '- The workflow primer covers campaign/slice/patch workflow, documentation freshness, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.',
-          )
-
-          stage2a = r'''
-## Stage 2A - Optional Codex worktree setup and cleanup scripts
-
-For projects that use Codex worktrees, keep repeatable setup and cleanup logic in repo scripts instead of repeating it in every handoff.
-
-Use setup scripts to prepare the worktree before Codex starts coding. Use cleanup scripts to remove disposable generated folders after a worktree is finished or before a fresh install.
-
-Good setup scripts should:
-
-- run from the repo root
-- show tool versions
-- fetch and prune Git refs
-- stop if the worktree appears stale, detached from known branch tips, behind upstream, or diverged
-- copy local-only environment files only from a user-controlled path
-- validate required environment keys without printing secret values
-- install dependencies using the project's package manager
-- fail loudly instead of continuing with a partial environment
-
-Good cleanup scripts should:
-
-- remove only disposable generated folders
-- never delete source files, docs, migrations, config, or local secrets
-- be safe to run more than once
-
-Keep app-specific details as variables near the top of the script.
-
-Generic cleanup template:
-
-```powershell
-$ErrorActionPreference = "Stop"
-
-Write-Host "Running Codex cleanup script from:" (Get-Location)
-
-$pathsToRemove = @(
-  ".next",
-  "node_modules",
-  "coverage",
-  "playwright-report",
-  "test-results",
-  ".vercel",
-  ".turbo"
-)
-
-foreach ($path in $pathsToRemove) {
-  if (Test-Path $path) {
-    Write-Host "Removing disposable path: $path"
-    Remove-Item -Recurse -Force $path -ErrorAction SilentlyContinue
-  } else {
-    Write-Host "Not present, skipping: $path"
-  }
-}
-
-Write-Host "Codex cleanup complete."
-```
-
-Generic setup template:
-
-```powershell
-$ErrorActionPreference = "Stop"
-
-# App-specific settings
-$SourceEnvPath = "{{Optional path to source .env.local, or leave blank}}"
-$RequiredEnvKeys = @(
-  "{{OPTIONAL_REQUIRED_ENV_KEY}}"
-)
-$RequiredRepoFiles = @(
-  "package.json"
-)
-$InstallCommand = "npm install"
-
-Write-Host "========================================"
-Write-Host "Codex Worktree Setup"
-Write-Host "========================================"
-Write-Host "Working directory:" (Get-Location)
-Write-Host ""
-
-Write-Host "Tool versions:"
-git --version
-if (Get-Command node -ErrorAction SilentlyContinue) { node -v }
-if (Get-Command npm -ErrorAction SilentlyContinue) { npm -v }
-if (Get-Command gh -ErrorAction SilentlyContinue) { gh --version }
-Write-Host ""
-
-Write-Host "Fetching latest Git refs..."
-git fetch --all --prune
-if ($LASTEXITCODE -ne 0) {
-  throw "Git fetch failed. Cannot verify worktree freshness."
-}
-
-$head = (git rev-parse HEAD).Trim()
-if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($head)) {
-  throw "Unable to determine current HEAD."
-}
-
-Write-Host "Current HEAD: $head"
-
-$matchingLocalBranches = @(
-  git for-each-ref refs/heads --format='%(refname:short) %(objectname)' |
-    ForEach-Object {
-      $parts = $_ -split '\s+'
-      if ($parts.Length -ge 2 -and $parts[1] -eq $head) {
-        $parts[0]
-      }
-    }
-)
-
-$matchingRemoteBranches = @(
-  git for-each-ref refs/remotes --format='%(refname:short) %(objectname)' |
-    Where-Object { -not $_.StartsWith("origin/HEAD ") } |
-    ForEach-Object {
-      $parts = $_ -split '\s+'
-      if ($parts.Length -ge 2 -and $parts[1] -eq $head) {
-        $parts[0]
-      }
-    }
-)
-
-if ($matchingLocalBranches.Count -eq 0 -and $matchingRemoteBranches.Count -eq 0) {
-  git log --oneline --decorate -5
-  throw "Stopping setup: this worktree HEAD is not the current tip of any known local or remote branch after fetch."
-}
-
-foreach ($file in $RequiredRepoFiles) {
-  if (-not (Test-Path $file)) {
-    throw "Required repo file not found: $file. Run this script from the project root or update RequiredRepoFiles."
-  }
-}
-
-$targetEnv = Join-Path (Get-Location) ".env.local"
-
-if (-not (Test-Path $targetEnv) -and -not [string]::IsNullOrWhiteSpace($SourceEnvPath)) {
-  if (-not (Test-Path $SourceEnvPath)) {
-    throw ".env.local missing in worktree and source path does not exist: $SourceEnvPath"
-  }
-
-  Copy-Item $SourceEnvPath $targetEnv -Force -ErrorAction Stop
-  Write-Host ".env.local copied into worktree."
-}
-
-if ($RequiredEnvKeys.Count -gt 0) {
-  if (-not (Test-Path $targetEnv)) {
-    throw ".env.local is required but missing."
-  }
-
-  foreach ($key in $RequiredEnvKeys) {
-    if ([string]::IsNullOrWhiteSpace($key) -or $key.Contains("{{")) {
-      continue
-    }
-
-    if (-not (Select-String -Path $targetEnv -Pattern "^$key=" -Quiet)) {
-      throw "$key missing from .env.local"
-    }
-  }
-
-  Write-Host ".env.local validation passed."
-}
-
-if (-not [string]::IsNullOrWhiteSpace($InstallCommand)) {
-  Write-Host "Running dependency install command: $InstallCommand"
-  Invoke-Expression $InstallCommand
-
-  if ($LASTEXITCODE -ne 0) {
-    throw "Dependency install command failed."
-  }
-}
-
-Write-Host ""
-Write-Host "========================================"
-Write-Host "Codex environment setup complete."
-Write-Host "========================================"
-```
-'''
-          guide = replace_exact(
-              guide,
-              'Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.\n\n\n## Stage 3 - Define the project',
-              'Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.\n' + stage2a + '\n\n## Stage 3 - Define the project',
-          )
-
-          # Stage 7 and 8 cleanup.
-          guide = replace_exact(guide, '- state packet expectation in the final report\n', '')
-          guide = replace_exact(
-              guide,
-              'After Codex finishes, paste its final report into ChatGPT. The final report should include a documentation delta and state packet.',
-              'After Codex finishes, paste its final report into ChatGPT. The final report should include a documentation delta.',
+              "- The workflow primer covers campaign/slice/patch workflow, documentation freshness, state packets, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.",
+              "- The workflow primer covers campaign/slice/patch workflow, documentation freshness, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.",
+              "Stage 4 primer scope",
           )
           guide = replace_exact(
               guide,
-              'Codex final report:\n{{Paste the Codex final report, including the documentation delta and state packet if present}}',
-              'Codex final report:\n{{Paste the Codex final report, including the documentation delta}}',
+              "Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.\n\n\n## Stage 3 - Define the project",
+              "Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.\n" + STAGE2A + "\n\n## Stage 3 - Define the project",
+              "Stage 2A insertion",
+          )
+
+          guide = replace_exact(guide, "- state packet expectation in the final report\n", "", "state packet handoff bullets")
+          guide = replace_exact(
+              guide,
+              "After Codex finishes, paste its final report into ChatGPT. The final report should include a documentation delta and state packet.",
+              "After Codex finishes, paste its final report into ChatGPT. The final report should include a documentation delta.",
+              "Stage 8 final report intro",
           )
           guide = replace_exact(
               guide,
-              'Use the state packet as orientation only. If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable.',
-              'If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable.',
+              "Codex final report:\n{{Paste the Codex final report, including the documentation delta and state packet if present}}",
+              "Codex final report:\n{{Paste the Codex final report, including the documentation delta}}",
+              "Codex final report prompt input",
           )
-
-          # Main loop intro and steps.
           guide = replace_exact(
               guide,
-              'Start a new ChatGPT chat at the beginning of a new campaign or major phase. Use the state packet from the most recent Codex report as a transition note, not as source of truth. Ask ChatGPT to inspect repo docs at the target branch when current state matters.',
-              'Start a new ChatGPT chat at the beginning of a new campaign or major phase. Ask ChatGPT to inspect repo docs at the target branch when current state matters.',
+              "Use the state packet as orientation only. If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable.",
+              "If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable.",
+              "state packet orientation sentence",
+          )
+          guide = replace_exact(
+              guide,
+              "Start a new ChatGPT chat at the beginning of a new campaign or major phase. Use the state packet from the most recent Codex report as a transition note, not as source of truth. Ask ChatGPT to inspect repo docs at the target branch when current state matters.",
+              "Start a new ChatGPT chat at the beginning of a new campaign or major phase. Ask ChatGPT to inspect repo docs at the target branch when current state matters.",
+              "main loop intro",
           )
 
-          loop_a = r'''## Loop Step A - Ground a new ChatGPT chat in the repo
-
-Use this at the start of a new ChatGPT chat, after campaign closeout, or whenever the chat context feels stale. This step is only for grounding. Do not plan new work here; use Step B or Step C for that.
-
-```md
-I am starting a new ChatGPT chat for an existing project.
-
-Target branch:
-{{What is the target branch?}}
-
-Please re-establish context by inspecting repo docs at the target branch:
-- AGENTS.md
-- docs/product.md
-- docs/architecture.md
-- docs/roadmap.md
-- docs/current-task.md
-- active docs/campaigns/*.md if relevant
-
-Rules:
-- Treat repo docs as authoritative.
-- Do not rely on memory from prior chats.
-- If connector access is unavailable, ask me for only the smallest missing file.
-- If docs conflict, call out the conflict before recommending next steps.
-
-After reading the docs, summarize:
-1. current product direction
-2. current architecture/state
-3. active work item or campaign
-4. next action according to docs/current-task.md
-5. any doc conflicts or stale areas
-```
-
-
-'''
           guide = replace_regex(
               guide,
-              r'## Loop Step A - .*?\n\n## Loop Step B - ',
-              loop_a + '## Loop Step B - ',
-              'Loop Step A',
+              r"## Loop Step A - .*?\n\n## Loop Step B - ",
+              LOOP_A + "## Loop Step B - ",
+              "Loop Step A",
           )
-
-          loop_b_body = r'''Plan the next work item
-
-Use this for a campaign, a standalone slice, or a patch. Campaign planning is part of the repeatable loop, not just first-time setup.
-
-
-```md
-Before planning, do a fresh source-of-truth check using repo docs at the target branch.
-
-Work mode:
-{{Which work type do you want to do? (Campaign, Single slice, or Patch)}}
-
-Target branch:
-{{What is the target branch?}}
-
-Current objective:
-{{What do you want to accomplish?}}
-
-Additional context:
-{{Anything important that is not already in repo docs, or write "none"}}
-
-Please inspect the configured GitHub repo at the target branch, or ask me for only the smallest missing file if connector access is unavailable:
-- AGENTS.md
-- docs/product.md
-- docs/architecture.md
-- docs/roadmap.md
-- docs/current-task.md
-- active docs/campaigns/*.md if relevant
-
-If Work mode is CAMPAIGN, produce a campaign document with:
-1. objective and target state
-2. current state and source-of-truth notes
-3. scope and non-goals
-4. slice plan
-5. acceptance criteria per slice
-6. validation and manual QA expectations
-7. stop conditions and campaign completion criteria
-8. follow-up backlog
-
-If Work mode is SINGLE_SLICE, produce a concise implementation plan with:
-1. goal and scope
-2. non-goals
-3. acceptance criteria
-4. validation and docs update expectations
-5. stop conditions
-
-If Work mode is PATCH, produce a narrow patch plan with:
-1. issues to fix and expected behavior
-2. non-goals
-3. acceptance criteria
-4. validation expectations
-5. risks
-
-The plan should support large swaths when appropriate, but keep each implementation step independently reviewable.
-```
-
-
-'''
           guide = replace_regex(
               guide,
-              r'Plan the next work item\n\nUse this for a campaign.*?\n\n\n## Loop Step C - ',
-              loop_b_body + '## Loop Step C - ',
-              'Loop Step B body',
-          )
-
-          guide = replace_exact(
-              guide,
-              '- documentation delta expectations\n- state packet expectation in the final report\n- stop conditions',
-              '- documentation delta expectations\n- stop conditions',
-          ) if '- documentation delta expectations\n- state packet expectation in the final report\n- stop conditions' in guide else guide
-
-          guide = replace_exact(
-              guide,
-              '- documentation delta\n- state packet\n- manual QA recommendations\n- known risks',
-              '- documentation delta\n- manual QA recommendations\n- known risks or follow-ups',
+              r"Plan the next work item\n\nUse this for a campaign.*?\n\n\n## Loop Step C - ",
+              LOOP_B_BODY + "## Loop Step C - ",
+              "Loop Step B body",
           )
           guide = replace_exact(
               guide,
-              'Use the state packet as orientation only. If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable. If the branch is unmerged, do not assume main includes the changes unless I say it was merged.',
-              'If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable. If the branch is unmerged, do not assume main includes the changes unless I say it was merged.',
+              "- documentation delta\n- state packet\n- manual QA recommendations\n- known risks",
+              "- documentation delta\n- manual QA recommendations\n- known risks or follow-ups",
+              "Codex final report bullets",
           )
-
-          loop_f = r'''## Loop Step F - Patch when needed
-
-
-```md
-Create a narrow Codex-ready patch handoff.
-
-Branch to patch:
-{{What branch should Codex patch?}}
-
-Issues to fix:
-{{List the issues this patch should fix}}
-
-Additional context:
-{{Anything Codex needs that is not already in repo docs, or write "none"}}
-
-Please inspect repo docs at the target branch if current state matters. Then generate a concise patch handoff with:
-1. goal
-2. source-of-truth docs to inspect
-3. scope
-4. non-goals
-5. acceptance criteria
-6. validation expectations
-7. documentation delta expectations
-8. final reporting expectations
-
-Rules:
-- Only fix the listed issues.
-- Do not redesign adjacent flows.
-- Do not start the next campaign slice unless explicitly requested.
-- Do not change schema/auth/deployment unless required and reported first.
-- Do not rewrite unrelated code.
-
-Final report must include:
-- branch
-- commit
-- files changed
-- validation results
-- documentation delta
-- manual QA recommendations
-- remaining risks or follow-ups
-
-Keep this handoff short and copy-paste ready.
-```
-
-
-'''
-          guide = replace_regex(
-              guide,
-              r'## Loop Step F - .*?\n\n\n## Loop Step G - ',
-              loop_f + '## Loop Step G - ',
-              'Loop Step F',
-          )
-
-          loop_g = r'''Close the campaign or phase
-
-When a campaign or major phase is complete, close it out, update docs, and usually start a new ChatGPT chat for the next campaign or phase.
-
-
-```md
-Help me close out this work item and prepare the project for the next stage.
-
-Target branch:
-{{What is the target branch?}}
-
-Work item to close:
-{{Which campaign, slice, patch, or phase is being closed out?}}
-
-Known remaining issues:
-{{List anything I already know, or write "none"}}
-
-Please do a fresh source-of-truth check using repo docs at the target branch. If connector access is unavailable, ask me for only the smallest missing file from:
-- AGENTS.md
-- docs/product.md
-- docs/architecture.md
-- docs/roadmap.md
-- docs/current-task.md
-- active campaign doc if relevant
-
-Then recommend:
-1. whether the work item appears complete
-2. what docs should be updated
-3. what old context should be archived or removed from the hot path
-4. what docs/current-task.md should say next
-5. whether the next step should be a patch, new campaign, standalone slice, production hardening, or pause
-6. whether I should start a new ChatGPT chat for the next phase
-7. a Codex-ready docs-update handoff if needed
-```
-
-'''
-          guide = replace_regex(
-              guide,
-              r'Close the campaign or phase\n\nWhen a campaign.*?\n\n# Documentation freshness system',
-              loop_g + '# Documentation freshness system',
-              'Loop Step G body',
-          )
-
-          freshness = r'''# Documentation freshness system
-
-Use `docs/current-task.md` as the active work pointer for current status and next action.
-
-Codex must update `docs/current-task.md` after every implementation. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
-
-ChatGPT should use the configured GitHub connector to inspect repo docs at the target branch whenever current state matters. Chat memory and prior final reports are orientation only; repo docs are authoritative.
-
-## Documentation delta
-
-Every Codex final report should include:
-
-```md
-Documentation delta:
-- docs/current-task.md: {{Summarize what changed in docs/current-task.md}}
-- campaign doc, if applicable: {{Summarize what changed, or write "not applicable"}}
-- docs/architecture.md: {{Summarize what changed, or write "not applicable"}}
-- docs/roadmap.md: {{Summarize what changed, or write "not applicable"}}
-```
-
-'''
-          guide = replace_regex(
-              guide,
-              r'# Documentation freshness system\n\n.*?## Docs health check',
-              freshness + '## Docs health check',
-              'Documentation freshness system',
-          )
-
           guide = replace_exact(
               guide,
-              '- state packet for the next ChatGPT session\n',
-              '',
+              "Use the state packet as orientation only. If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable. If the branch is unmerged, do not assume main includes the changes unless I say it was merged.",
+              "If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable. If the branch is unmerged, do not assume main includes the changes unless I say it was merged.",
+              "QA review state packet orientation",
           )
-
-          current_state = r'''# Current-state protocol
-
-Use this whenever ChatGPT might be stale.
-
-
-```md
-Before answering, do a fresh source-of-truth check for this project.
-
-Current situation:
-{{Briefly describe why you need a source-of-truth check}}
-
-Target branch:
-{{What is the target branch?}}
-
-Please inspect repo docs at the target branch for the latest versions of:
-- AGENTS.md
-- docs/product.md
-- docs/architecture.md
-- docs/roadmap.md
-- docs/current-task.md
-- active docs/campaigns/*.md if relevant
-
-Rules:
-- Do not rely on memory or prior chat assumptions.
-- Treat repo docs as authoritative.
-- If connector access is unavailable or a file is missing, ask me to paste or upload only the specific missing files.
-- If the branch is unmerged, do not assume main includes the branch changes.
-- If docs conflict, call out the conflict before making recommendations.
-
-After the source-of-truth check, answer my request:
-{{What do you want ChatGPT to answer or help with?}}
-```
-
-'''
           guide = replace_regex(
               guide,
-              r'# Current-state protocol\n\n.*?# Operating rules',
-              current_state + '# Operating rules',
-              'Current-state protocol',
+              r"## Loop Step F - .*?\n\n\n## Loop Step G - ",
+              LOOP_F + "## Loop Step G - ",
+              "Loop Step F",
           )
-
-          operating = r'''# Operating rules
-
-1. The repo is the durable memory. Chats are temporary.
-2. Codex owns doc freshness during implementation.
-3. `docs/current-task.md` must be updated after every implementation.
-4. Every Codex final report must include a documentation delta.
-5. Keep hot context small: `AGENTS.md`, product, architecture, roadmap, current-task, and the active campaign doc.
-6. Use campaigns for large swaths of work and patches for narrow fixes.
-7. Configure ChatGPT, GitHub repo access, and Codex before relying on them.
-8. Inspect repo docs through the configured GitHub connector before asking for pasted docs when current state matters.
-9. Use Windows + PowerShell by default.
-10. Keep Codex worktree setup in Codex configuration or helper scripts, not normal handoffs.
-11. Stop when docs conflict.
-12. Archive old handoffs, obsolete campaign docs, long slice logs, and stale instructions.
-
-'''
           guide = replace_regex(
               guide,
-              r'# Operating rules\n\n.*?# Appendix A - ChatGPT Project workflow primer',
-              operating + '# Appendix A - ChatGPT Project workflow primer',
-              'Operating rules',
+              r"Close the campaign or phase\n\nWhen a campaign.*?\n\n# Documentation freshness system",
+              LOOP_G_BODY + "# Documentation freshness system",
+              "Loop Step G body",
+          )
+          guide = replace_regex(
+              guide,
+              r"# Documentation freshness system\n\n.*?## Docs health check",
+              FRESHNESS + "## Docs health check",
+              "Documentation freshness system",
+          )
+          guide = replace_exact(
+              guide,
+              "- state packet for the next ChatGPT session\n",
+              "",
+              "docs health check final report",
+          )
+          guide = replace_regex(
+              guide,
+              r"# Current-state protocol\n\n.*?# Operating rules",
+              CURRENT_STATE + "# Operating rules",
+              "Current-state protocol",
+          )
+          guide = replace_regex(
+              guide,
+              r"# Operating rules\n\n.*?# Appendix A - ChatGPT Project workflow primer",
+              OPERATING + "# Appendix A - ChatGPT Project workflow primer",
+              "Operating rules",
           )
 
-          # Standalone primer and embedded primer wording.
-          old_primer_freshness = '''## Documentation freshness
+          guide = replace_exact(guide, OLD_PRIMER_FRESHNESS, NEW_PRIMER_FRESHNESS, "embedded primer freshness")
+          primer = replace_exact(primer, OLD_PRIMER_FRESHNESS, NEW_PRIMER_FRESHNESS, "standalone primer freshness")
 
-Codex owns documentation freshness during implementation. Every implementation should update `docs/current-task.md`. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
+          guide = re.sub(r"^- \*\*State packet:\*\*.*\n", "", guide, flags=re.M)
 
-Every Codex final report should include a documentation delta and a compact state packet.
-
-The state packet is not a source of truth. It is a transition note that helps the next ChatGPT session orient quickly. Repo docs remain authoritative.'''
-          new_primer_freshness = '''## Documentation freshness
-
-Codex owns documentation freshness during implementation. Every implementation should update `docs/current-task.md`. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
-
-Every Codex final report should include a documentation delta that says which docs changed and why.
-
-ChatGPT should inspect repo docs at the target branch whenever current state matters. Prior chat context and final reports are orientation only; repo docs remain authoritative.'''
-          guide = replace_exact(guide, old_primer_freshness, new_primer_freshness)
-          primer = replace_exact(primer, old_primer_freshness, new_primer_freshness)
-
-          guide = re.sub(r'^- \*\*State packet:\*\*.*\n', '', guide, flags=re.M)
-
-          forbidden = ['state packet', 'state packets', 'project-state file']
-          lowered = guide.lower() + '\n' + primer.lower()
-          for term in forbidden:
+          for term in ["state packet", "state packets", "project-state file"]:
+              lowered = guide.lower() + "\n" + primer.lower()
               if term in lowered:
-                  raise SystemExit(f'Forbidden term remains: {term}')
+                  raise SystemExit(f"Forbidden term remains: {term}")
 
-          guide_path.write_text(guide, encoding='utf-8')
-          primer_path.write_text(primer, encoding='utf-8')
-          PY
+          guide_path.write_text(guide, encoding="utf-8")
+          primer_path.write_text(primer, encoding="utf-8")
 
       - name: Render guide HTML
         run: python tools/render_guide.py
