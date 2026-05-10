@@ -6,12 +6,14 @@ Browser-only behaviors are represented by checking the required DOM hooks and JS
 """
 from __future__ import annotations
 
+import re
 import subprocess
 from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML_FILE = ROOT / "llm_coding_workflow_guide.html"
+MD_FILE = ROOT / "llm_coding_workflow_guide.md"
 PRIMER_FILE = ROOT / "llm-workflow-primer.md"
 
 
@@ -20,6 +22,8 @@ class GuideParser(HTMLParser):
         super().__init__()
         self.ids: set[str] = set()
         self.nav_hrefs: list[str] = []
+        self.nav_groups: dict[str, list[str]] = {}
+        self._current_nav_group: str | None = None
         self.copy_targets: list[str] = []
         self.code_ids: set[str] = set()
         self.classes: list[str] = []
@@ -34,8 +38,14 @@ class GuideParser(HTMLParser):
             self.ids.add(attr["id"] or "")
         if "class" in attr and attr["class"]:
             self.classes.extend((attr["class"] or "").split())
+        if tag == "details" and attr.get("data-nav-group"):
+            self._current_nav_group = attr.get("data-nav-group") or ""
+            self.nav_groups.setdefault(self._current_nav_group, [])
         if tag == "a" and "data-nav" in attr and attr.get("href", "").startswith("#"):
-            self.nav_hrefs.append(attr["href"] or "")
+            href = attr["href"] or ""
+            self.nav_hrefs.append(href)
+            if self._current_nav_group:
+                self.nav_groups.setdefault(self._current_nav_group, []).append(href)
         if tag == "button" and attr.get("data-copy-target"):
             self.copy_targets.append(attr["data-copy-target"] or "")
         if tag == "code" and attr.get("id"):
@@ -48,6 +58,8 @@ class GuideParser(HTMLParser):
         if tag == "script" and self._in_script:
             self.scripts.append("".join(self._script_parts))
             self._in_script = False
+        if tag == "details":
+            self._current_nav_group = None
 
     def handle_data(self, data: str) -> None:
         if self._in_script:
@@ -63,8 +75,29 @@ def check(condition: bool, message: str, failures: list[str]) -> None:
         failures.append(message)
 
 
+def find_liquid_sensitive_template_lines(markdown: str) -> list[str]:
+    """Find code-template lines that can confuse Jekyll/Liquid.
+
+    The guide intentionally uses {{...}} prompt placeholders. Those should remain.
+    This check targets code lines that include a bare {{ or }} fragment inside quotes,
+    such as PowerShell string checks like `$key.Contains("{{")`.
+    """
+    failures: list[str] = []
+    in_code = False
+    for lineno, line in enumerate(markdown.splitlines(), start=1):
+        if line.startswith("```"):
+            in_code = not in_code
+            continue
+        if not in_code:
+            continue
+        if re.search(r"[\"']\s*\{\{\s*[\"']", line) or re.search(r"[\"']\s*\}\}\s*[\"']", line):
+            failures.append(f"line {lineno}: {line.strip()}")
+    return failures
+
+
 def main() -> int:
     html = HTML_FILE.read_text(encoding="utf-8")
+    markdown = MD_FILE.read_text(encoding="utf-8")
     parser = GuideParser()
     parser.feed(html)
     text = "\n".join(parser.text_parts)
@@ -81,6 +114,10 @@ def main() -> int:
         check(required_class in parser.classes, f"required UI class exists: {required_class}", failures)
     check("floating-tooltip" in html, "floating tooltip code exists", failures)
 
+    implementation_hrefs = parser.nav_groups.get("Implementation loop", [])
+    check("#loop-step-a-ground-a-new-chatgpt-chat-in-the-repo" in implementation_hrefs, "Loop Step A is grouped under Implementation loop", failures)
+    check("#loop-step-a-ground-a-new-chatgpt-chat-in-the-repo" not in parser.nav_groups.get("Other sections", []), "Loop Step A is absent from Other sections", failures)
+
     missing_copy = [target for target in parser.copy_targets if target not in parser.code_ids]
     check(not missing_copy and bool(parser.copy_targets), f"copy buttons target existing code blocks ({len(parser.copy_targets)} checked)", failures)
 
@@ -89,6 +126,13 @@ def main() -> int:
     check("Connected GitHub repo:" not in html, "routine Connected GitHub repo prompt field absent", failures)
     check("Awesome Prompts" in text, "Prompt Manager section still recommends Awesome Prompts", failures)
     check("llm_coding_workflow_diagram.png" in html, "diagram uses external PNG reference", failures)
+    check("State packet" not in text and "state packet" not in text, "state packet references absent", failures)
+
+    liquid_sensitive_lines = find_liquid_sensitive_template_lines(markdown)
+    check(not liquid_sensitive_lines, "Liquid-sensitive bare double-brace code fragments absent", failures)
+    if liquid_sensitive_lines:
+        for line in liquid_sensitive_lines:
+            print(f"Liquid-sensitive line: {line}")
 
     script = "\n".join(parser.scripts)
     behavior_checks = {
