@@ -1,0 +1,641 @@
+name: Apply approved guide update
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/apply-approved-guide-update.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Apply approved Markdown updates
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          guide_path = Path('llm_coding_workflow_guide.md')
+          primer_path = Path('llm-workflow-primer.md')
+
+          guide = guide_path.read_text(encoding='utf-8')
+          primer = primer_path.read_text(encoding='utf-8')
+
+          def replace_exact(text: str, old: str, new: str) -> str:
+              if old not in text:
+                  raise SystemExit(f'Missing expected text for replacement:\n{old[:200]}')
+              return text.replace(old, new)
+
+          def replace_regex(text: str, pattern: str, replacement: str, label: str) -> str:
+              new_text, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one replacement for {label}, found {count}')
+              return new_text
+
+          # Small wording updates in setup sections.
+          guide = replace_exact(
+              guide,
+              '13. Repeat: plan work -> generate handoff -> implement -> docs/state update -> QA -> merge or patch.',
+              '13. Repeat: plan work -> generate handoff -> implement -> docs update -> QA -> merge or patch.',
+          )
+          guide = replace_exact(
+              guide,
+              'Prefer step-by-step guidance, lean Codex handoffs, reviewable slices, clear stop conditions, documentation delta requirements, and final state packets from coding agents.',
+              'Prefer step-by-step guidance, lean Codex handoffs, reviewable slices, clear stop conditions, documentation delta requirements, and clear final reports from coding agents.',
+          )
+          guide = replace_exact(
+              guide,
+              '- Treat state packets as transition notes only.\n',
+              '',
+          )
+          guide = replace_exact(
+              guide,
+              '- The workflow primer covers campaign/slice/patch workflow, documentation freshness, state packets, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.',
+              '- The workflow primer covers campaign/slice/patch workflow, documentation freshness, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.',
+          )
+
+          stage2a = r'''
+## Stage 2A - Optional Codex worktree setup and cleanup scripts
+
+For projects that use Codex worktrees, keep repeatable setup and cleanup logic in repo scripts instead of repeating it in every handoff.
+
+Use setup scripts to prepare the worktree before Codex starts coding. Use cleanup scripts to remove disposable generated folders after a worktree is finished or before a fresh install.
+
+Good setup scripts should:
+
+- run from the repo root
+- show tool versions
+- fetch and prune Git refs
+- stop if the worktree appears stale, detached from known branch tips, behind upstream, or diverged
+- copy local-only environment files only from a user-controlled path
+- validate required environment keys without printing secret values
+- install dependencies using the project's package manager
+- fail loudly instead of continuing with a partial environment
+
+Good cleanup scripts should:
+
+- remove only disposable generated folders
+- never delete source files, docs, migrations, config, or local secrets
+- be safe to run more than once
+
+Keep app-specific details as variables near the top of the script.
+
+Generic cleanup template:
+
+```powershell
+$ErrorActionPreference = "Stop"
+
+Write-Host "Running Codex cleanup script from:" (Get-Location)
+
+$pathsToRemove = @(
+  ".next",
+  "node_modules",
+  "coverage",
+  "playwright-report",
+  "test-results",
+  ".vercel",
+  ".turbo"
+)
+
+foreach ($path in $pathsToRemove) {
+  if (Test-Path $path) {
+    Write-Host "Removing disposable path: $path"
+    Remove-Item -Recurse -Force $path -ErrorAction SilentlyContinue
+  } else {
+    Write-Host "Not present, skipping: $path"
+  }
+}
+
+Write-Host "Codex cleanup complete."
+```
+
+Generic setup template:
+
+```powershell
+$ErrorActionPreference = "Stop"
+
+# App-specific settings
+$SourceEnvPath = "{{Optional path to source .env.local, or leave blank}}"
+$RequiredEnvKeys = @(
+  "{{OPTIONAL_REQUIRED_ENV_KEY}}"
+)
+$RequiredRepoFiles = @(
+  "package.json"
+)
+$InstallCommand = "npm install"
+
+Write-Host "========================================"
+Write-Host "Codex Worktree Setup"
+Write-Host "========================================"
+Write-Host "Working directory:" (Get-Location)
+Write-Host ""
+
+Write-Host "Tool versions:"
+git --version
+if (Get-Command node -ErrorAction SilentlyContinue) { node -v }
+if (Get-Command npm -ErrorAction SilentlyContinue) { npm -v }
+if (Get-Command gh -ErrorAction SilentlyContinue) { gh --version }
+Write-Host ""
+
+Write-Host "Fetching latest Git refs..."
+git fetch --all --prune
+if ($LASTEXITCODE -ne 0) {
+  throw "Git fetch failed. Cannot verify worktree freshness."
+}
+
+$head = (git rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($head)) {
+  throw "Unable to determine current HEAD."
+}
+
+Write-Host "Current HEAD: $head"
+
+$matchingLocalBranches = @(
+  git for-each-ref refs/heads --format='%(refname:short) %(objectname)' |
+    ForEach-Object {
+      $parts = $_ -split '\s+'
+      if ($parts.Length -ge 2 -and $parts[1] -eq $head) {
+        $parts[0]
+      }
+    }
+)
+
+$matchingRemoteBranches = @(
+  git for-each-ref refs/remotes --format='%(refname:short) %(objectname)' |
+    Where-Object { -not $_.StartsWith("origin/HEAD ") } |
+    ForEach-Object {
+      $parts = $_ -split '\s+'
+      if ($parts.Length -ge 2 -and $parts[1] -eq $head) {
+        $parts[0]
+      }
+    }
+)
+
+if ($matchingLocalBranches.Count -eq 0 -and $matchingRemoteBranches.Count -eq 0) {
+  git log --oneline --decorate -5
+  throw "Stopping setup: this worktree HEAD is not the current tip of any known local or remote branch after fetch."
+}
+
+foreach ($file in $RequiredRepoFiles) {
+  if (-not (Test-Path $file)) {
+    throw "Required repo file not found: $file. Run this script from the project root or update RequiredRepoFiles."
+  }
+}
+
+$targetEnv = Join-Path (Get-Location) ".env.local"
+
+if (-not (Test-Path $targetEnv) -and -not [string]::IsNullOrWhiteSpace($SourceEnvPath)) {
+  if (-not (Test-Path $SourceEnvPath)) {
+    throw ".env.local missing in worktree and source path does not exist: $SourceEnvPath"
+  }
+
+  Copy-Item $SourceEnvPath $targetEnv -Force -ErrorAction Stop
+  Write-Host ".env.local copied into worktree."
+}
+
+if ($RequiredEnvKeys.Count -gt 0) {
+  if (-not (Test-Path $targetEnv)) {
+    throw ".env.local is required but missing."
+  }
+
+  foreach ($key in $RequiredEnvKeys) {
+    if ([string]::IsNullOrWhiteSpace($key) -or $key.Contains("{{")) {
+      continue
+    }
+
+    if (-not (Select-String -Path $targetEnv -Pattern "^$key=" -Quiet)) {
+      throw "$key missing from .env.local"
+    }
+  }
+
+  Write-Host ".env.local validation passed."
+}
+
+if (-not [string]::IsNullOrWhiteSpace($InstallCommand)) {
+  Write-Host "Running dependency install command: $InstallCommand"
+  Invoke-Expression $InstallCommand
+
+  if ($LASTEXITCODE -ne 0) {
+    throw "Dependency install command failed."
+  }
+}
+
+Write-Host ""
+Write-Host "========================================"
+Write-Host "Codex environment setup complete."
+Write-Host "========================================"
+```
+'''
+          guide = replace_exact(
+              guide,
+              'Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.\n\n\n## Stage 3 - Define the project',
+              'Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.\n' + stage2a + '\n\n## Stage 3 - Define the project',
+          )
+
+          # Stage 7 and 8 cleanup.
+          guide = replace_exact(guide, '- state packet expectation in the final report\n', '')
+          guide = replace_exact(
+              guide,
+              'After Codex finishes, paste its final report into ChatGPT. The final report should include a documentation delta and state packet.',
+              'After Codex finishes, paste its final report into ChatGPT. The final report should include a documentation delta.',
+          )
+          guide = replace_exact(
+              guide,
+              'Codex final report:\n{{Paste the Codex final report, including the documentation delta and state packet if present}}',
+              'Codex final report:\n{{Paste the Codex final report, including the documentation delta}}',
+          )
+          guide = replace_exact(
+              guide,
+              'Use the state packet as orientation only. If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable.',
+              'If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable.',
+          )
+
+          # Main loop intro and steps.
+          guide = replace_exact(
+              guide,
+              'Start a new ChatGPT chat at the beginning of a new campaign or major phase. Use the state packet from the most recent Codex report as a transition note, not as source of truth. Ask ChatGPT to inspect repo docs at the target branch when current state matters.',
+              'Start a new ChatGPT chat at the beginning of a new campaign or major phase. Ask ChatGPT to inspect repo docs at the target branch when current state matters.',
+          )
+
+          loop_a = r'''## Loop Step A - Ground a new ChatGPT chat in the repo
+
+Use this at the start of a new ChatGPT chat, after campaign closeout, or whenever the chat context feels stale. This step is only for grounding. Do not plan new work here; use Step B or Step C for that.
+
+```md
+I am starting a new ChatGPT chat for an existing project.
+
+Target branch:
+{{What is the target branch?}}
+
+Please re-establish context by inspecting repo docs at the target branch:
+- AGENTS.md
+- docs/product.md
+- docs/architecture.md
+- docs/roadmap.md
+- docs/current-task.md
+- active docs/campaigns/*.md if relevant
+
+Rules:
+- Treat repo docs as authoritative.
+- Do not rely on memory from prior chats.
+- If connector access is unavailable, ask me for only the smallest missing file.
+- If docs conflict, call out the conflict before recommending next steps.
+
+After reading the docs, summarize:
+1. current product direction
+2. current architecture/state
+3. active work item or campaign
+4. next action according to docs/current-task.md
+5. any doc conflicts or stale areas
+```
+
+
+'''
+          guide = replace_regex(
+              guide,
+              r'## Loop Step A - .*?\n\n## Loop Step B - ',
+              loop_a + '## Loop Step B - ',
+              'Loop Step A',
+          )
+
+          loop_b_body = r'''Plan the next work item
+
+Use this for a campaign, a standalone slice, or a patch. Campaign planning is part of the repeatable loop, not just first-time setup.
+
+
+```md
+Before planning, do a fresh source-of-truth check using repo docs at the target branch.
+
+Work mode:
+{{Which work type do you want to do? (Campaign, Single slice, or Patch)}}
+
+Target branch:
+{{What is the target branch?}}
+
+Current objective:
+{{What do you want to accomplish?}}
+
+Additional context:
+{{Anything important that is not already in repo docs, or write "none"}}
+
+Please inspect the configured GitHub repo at the target branch, or ask me for only the smallest missing file if connector access is unavailable:
+- AGENTS.md
+- docs/product.md
+- docs/architecture.md
+- docs/roadmap.md
+- docs/current-task.md
+- active docs/campaigns/*.md if relevant
+
+If Work mode is CAMPAIGN, produce a campaign document with:
+1. objective and target state
+2. current state and source-of-truth notes
+3. scope and non-goals
+4. slice plan
+5. acceptance criteria per slice
+6. validation and manual QA expectations
+7. stop conditions and campaign completion criteria
+8. follow-up backlog
+
+If Work mode is SINGLE_SLICE, produce a concise implementation plan with:
+1. goal and scope
+2. non-goals
+3. acceptance criteria
+4. validation and docs update expectations
+5. stop conditions
+
+If Work mode is PATCH, produce a narrow patch plan with:
+1. issues to fix and expected behavior
+2. non-goals
+3. acceptance criteria
+4. validation expectations
+5. risks
+
+The plan should support large swaths when appropriate, but keep each implementation step independently reviewable.
+```
+
+
+'''
+          guide = replace_regex(
+              guide,
+              r'Plan the next work item\n\nUse this for a campaign.*?\n\n\n## Loop Step C - ',
+              loop_b_body + '## Loop Step C - ',
+              'Loop Step B body',
+          )
+
+          guide = replace_exact(
+              guide,
+              '- documentation delta expectations\n- state packet expectation in the final report\n- stop conditions',
+              '- documentation delta expectations\n- stop conditions',
+          ) if '- documentation delta expectations\n- state packet expectation in the final report\n- stop conditions' in guide else guide
+
+          guide = replace_exact(
+              guide,
+              '- documentation delta\n- state packet\n- manual QA recommendations\n- known risks',
+              '- documentation delta\n- manual QA recommendations\n- known risks or follow-ups',
+          )
+          guide = replace_exact(
+              guide,
+              'Use the state packet as orientation only. If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable. If the branch is unmerged, do not assume main includes the changes unless I say it was merged.',
+              'If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable. If the branch is unmerged, do not assume main includes the changes unless I say it was merged.',
+          )
+
+          loop_f = r'''## Loop Step F - Patch when needed
+
+
+```md
+Create a narrow Codex-ready patch handoff.
+
+Branch to patch:
+{{What branch should Codex patch?}}
+
+Issues to fix:
+{{List the issues this patch should fix}}
+
+Additional context:
+{{Anything Codex needs that is not already in repo docs, or write "none"}}
+
+Please inspect repo docs at the target branch if current state matters. Then generate a concise patch handoff with:
+1. goal
+2. source-of-truth docs to inspect
+3. scope
+4. non-goals
+5. acceptance criteria
+6. validation expectations
+7. documentation delta expectations
+8. final reporting expectations
+
+Rules:
+- Only fix the listed issues.
+- Do not redesign adjacent flows.
+- Do not start the next campaign slice unless explicitly requested.
+- Do not change schema/auth/deployment unless required and reported first.
+- Do not rewrite unrelated code.
+
+Final report must include:
+- branch
+- commit
+- files changed
+- validation results
+- documentation delta
+- manual QA recommendations
+- remaining risks or follow-ups
+
+Keep this handoff short and copy-paste ready.
+```
+
+
+'''
+          guide = replace_regex(
+              guide,
+              r'## Loop Step F - .*?\n\n\n## Loop Step G - ',
+              loop_f + '## Loop Step G - ',
+              'Loop Step F',
+          )
+
+          loop_g = r'''Close the campaign or phase
+
+When a campaign or major phase is complete, close it out, update docs, and usually start a new ChatGPT chat for the next campaign or phase.
+
+
+```md
+Help me close out this work item and prepare the project for the next stage.
+
+Target branch:
+{{What is the target branch?}}
+
+Work item to close:
+{{Which campaign, slice, patch, or phase is being closed out?}}
+
+Known remaining issues:
+{{List anything I already know, or write "none"}}
+
+Please do a fresh source-of-truth check using repo docs at the target branch. If connector access is unavailable, ask me for only the smallest missing file from:
+- AGENTS.md
+- docs/product.md
+- docs/architecture.md
+- docs/roadmap.md
+- docs/current-task.md
+- active campaign doc if relevant
+
+Then recommend:
+1. whether the work item appears complete
+2. what docs should be updated
+3. what old context should be archived or removed from the hot path
+4. what docs/current-task.md should say next
+5. whether the next step should be a patch, new campaign, standalone slice, production hardening, or pause
+6. whether I should start a new ChatGPT chat for the next phase
+7. a Codex-ready docs-update handoff if needed
+```
+
+'''
+          guide = replace_regex(
+              guide,
+              r'Close the campaign or phase\n\nWhen a campaign.*?\n\n# Documentation freshness system',
+              loop_g + '# Documentation freshness system',
+              'Loop Step G body',
+          )
+
+          freshness = r'''# Documentation freshness system
+
+Use `docs/current-task.md` as the active work pointer for current status and next action.
+
+Codex must update `docs/current-task.md` after every implementation. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
+
+ChatGPT should use the configured GitHub connector to inspect repo docs at the target branch whenever current state matters. Chat memory and prior final reports are orientation only; repo docs are authoritative.
+
+## Documentation delta
+
+Every Codex final report should include:
+
+```md
+Documentation delta:
+- docs/current-task.md: {{Summarize what changed in docs/current-task.md}}
+- campaign doc, if applicable: {{Summarize what changed, or write "not applicable"}}
+- docs/architecture.md: {{Summarize what changed, or write "not applicable"}}
+- docs/roadmap.md: {{Summarize what changed, or write "not applicable"}}
+```
+
+'''
+          guide = replace_regex(
+              guide,
+              r'# Documentation freshness system\n\n.*?## Docs health check',
+              freshness + '## Docs health check',
+              'Documentation freshness system',
+          )
+
+          guide = replace_exact(
+              guide,
+              '- state packet for the next ChatGPT session\n',
+              '',
+          )
+
+          current_state = r'''# Current-state protocol
+
+Use this whenever ChatGPT might be stale.
+
+
+```md
+Before answering, do a fresh source-of-truth check for this project.
+
+Current situation:
+{{Briefly describe why you need a source-of-truth check}}
+
+Target branch:
+{{What is the target branch?}}
+
+Please inspect repo docs at the target branch for the latest versions of:
+- AGENTS.md
+- docs/product.md
+- docs/architecture.md
+- docs/roadmap.md
+- docs/current-task.md
+- active docs/campaigns/*.md if relevant
+
+Rules:
+- Do not rely on memory or prior chat assumptions.
+- Treat repo docs as authoritative.
+- If connector access is unavailable or a file is missing, ask me to paste or upload only the specific missing files.
+- If the branch is unmerged, do not assume main includes the branch changes.
+- If docs conflict, call out the conflict before making recommendations.
+
+After the source-of-truth check, answer my request:
+{{What do you want ChatGPT to answer or help with?}}
+```
+
+'''
+          guide = replace_regex(
+              guide,
+              r'# Current-state protocol\n\n.*?# Operating rules',
+              current_state + '# Operating rules',
+              'Current-state protocol',
+          )
+
+          operating = r'''# Operating rules
+
+1. The repo is the durable memory. Chats are temporary.
+2. Codex owns doc freshness during implementation.
+3. `docs/current-task.md` must be updated after every implementation.
+4. Every Codex final report must include a documentation delta.
+5. Keep hot context small: `AGENTS.md`, product, architecture, roadmap, current-task, and the active campaign doc.
+6. Use campaigns for large swaths of work and patches for narrow fixes.
+7. Configure ChatGPT, GitHub repo access, and Codex before relying on them.
+8. Inspect repo docs through the configured GitHub connector before asking for pasted docs when current state matters.
+9. Use Windows + PowerShell by default.
+10. Keep Codex worktree setup in Codex configuration or helper scripts, not normal handoffs.
+11. Stop when docs conflict.
+12. Archive old handoffs, obsolete campaign docs, long slice logs, and stale instructions.
+
+'''
+          guide = replace_regex(
+              guide,
+              r'# Operating rules\n\n.*?# Appendix A - ChatGPT Project workflow primer',
+              operating + '# Appendix A - ChatGPT Project workflow primer',
+              'Operating rules',
+          )
+
+          # Standalone primer and embedded primer wording.
+          old_primer_freshness = '''## Documentation freshness
+
+Codex owns documentation freshness during implementation. Every implementation should update `docs/current-task.md`. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
+
+Every Codex final report should include a documentation delta and a compact state packet.
+
+The state packet is not a source of truth. It is a transition note that helps the next ChatGPT session orient quickly. Repo docs remain authoritative.'''
+          new_primer_freshness = '''## Documentation freshness
+
+Codex owns documentation freshness during implementation. Every implementation should update `docs/current-task.md`. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
+
+Every Codex final report should include a documentation delta that says which docs changed and why.
+
+ChatGPT should inspect repo docs at the target branch whenever current state matters. Prior chat context and final reports are orientation only; repo docs remain authoritative.'''
+          guide = replace_exact(guide, old_primer_freshness, new_primer_freshness)
+          primer = replace_exact(primer, old_primer_freshness, new_primer_freshness)
+
+          guide = re.sub(r'^- \*\*State packet:\*\*.*\n', '', guide, flags=re.M)
+
+          forbidden = ['state packet', 'state packets', 'project-state file']
+          lowered = guide.lower() + '\n' + primer.lower()
+          for term in forbidden:
+              if term in lowered:
+                  raise SystemExit(f'Forbidden term remains: {term}')
+
+          guide_path.write_text(guide, encoding='utf-8')
+          primer_path.write_text(primer, encoding='utf-8')
+          PY
+
+      - name: Render guide HTML
+        run: python tools/render_guide.py
+
+      - name: Validate guide HTML
+        run: python tools/validate_guide.py
+
+      - name: Remove one-time workflow
+        run: rm .github/workflows/apply-approved-guide-update.yml
+
+      - name: Commit approved guide update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add llm_coding_workflow_guide.md llm-workflow-primer.md llm_coding_workflow_guide.html .github/workflows/apply-approved-guide-update.yml
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Simplify guide workflow and remove state packets"
+            git push
+          fi
