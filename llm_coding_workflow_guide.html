@@ -16,18 +16,19 @@
 <input aria-label="Filter sections" id="navSearch" placeholder="Filter sections..."/>
 <div class="nav-controls"><button id="expandNav" type="button">Expand</button><button id="collapseNav" type="button">Collapse</button><button id="clearNavSearch" type="button">Clear</button></div>
 <p class="nav-status" id="navStatus" aria-live="polite">Showing all sections</p>
-<nav id="nav"><details class="nav-group" open><summary>Start here</summary>
+<nav id="nav"><details class="nav-group" data-nav-group="Start here" open><summary>Start here</summary>
 <a data-nav data-level="1" href="#llm-coding-workflow-guide">LLM Coding Workflow Guide</a>
 <a data-nav data-level="2" href="#purpose">Purpose</a>
 <a data-nav data-level="2" href="#why-this-workflow-works">Why this workflow works</a>
 <a data-nav data-level="2" href="#quick-start">Quick start</a>
 </details>
-<details class="nav-group"><summary>One-time setup</summary>
+<details class="nav-group" data-nav-group="One-time setup"><summary>One-time setup</summary>
 <a data-nav data-level="2" href="#stage-0-create-the-repo-and-local-workspace">Stage 0 - Create the repo and local workspace</a>
 <a data-nav data-level="2" href="#stage-1-create-the-chatgpt-project">Stage 1 - Create the ChatGPT Project</a>
 <a data-nav data-level="2" href="#stage-1a-add-the-compact-workflow-primer">Stage 1A - Add the compact workflow primer</a>
 <a data-nav data-level="2" href="#stage-1b-configure-github-source-of-truth-access">Stage 1B - Configure GitHub source-of-truth access</a>
 <a data-nav data-level="2" href="#stage-2-configure-codex-before-handoffs">Stage 2 - Configure Codex before handoffs</a>
+<a data-nav data-level="2" href="#stage-2a-optional-codex-worktree-setup-and-cleanup-scripts">Stage 2A - Optional Codex worktree setup and cleanup scripts</a>
 <a data-nav data-level="2" href="#stage-3-define-the-project">Stage 3 - Define the project</a>
 <a data-nav data-level="2" href="#stage-4-generate-project-specific-chatgpt-instructions">Stage 4 - Generate project-specific ChatGPT instructions</a>
 <a data-nav data-level="2" href="#stage-5-generate-the-core-repo-docs">Stage 5 - Generate the core repo docs</a>
@@ -35,8 +36,9 @@
 <a data-nav data-level="2" href="#stage-7-bootstrap-the-project">Stage 7 - Bootstrap the project</a>
 <a data-nav data-level="2" href="#stage-8-review-bootstrap">Stage 8 - Review bootstrap</a>
 </details>
-<details class="nav-group" open><summary>Implementation loop</summary>
+<details class="nav-group" data-nav-group="Implementation loop" open><summary>Implementation loop</summary>
 <a data-nav data-level="1" href="#main-implementation-loop">Main implementation loop</a>
+<a data-nav data-level="2" href="#loop-step-a-ground-a-new-chatgpt-chat-in-the-repo">Loop Step A - Ground a new ChatGPT chat in the repo</a>
 <a data-nav data-level="2" href="#loop-step-b-plan-the-next-work-item">Loop Step B - Plan the next work item</a>
 <a data-nav data-level="2" href="#loop-step-c-generate-the-next-codex-handoff">Loop Step C - Generate the next Codex handoff</a>
 <a data-nav data-level="2" href="#loop-step-d-let-codex-implement">Loop Step D - Let Codex implement</a>
@@ -44,23 +46,21 @@
 <a data-nav data-level="2" href="#loop-step-f-patch-when-needed">Loop Step F - Patch when needed</a>
 <a data-nav data-level="2" href="#loop-step-g-close-the-campaign-or-phase">Loop Step G - Close the campaign or phase</a>
 </details>
-<details class="nav-group"><summary>Docs and protocols</summary>
+<details class="nav-group" data-nav-group="Docs and protocols"><summary>Docs and protocols</summary>
 <a data-nav data-level="1" href="#documentation-freshness-system">Documentation freshness system</a>
 <a data-nav data-level="2" href="#documentation-delta">Documentation delta</a>
 <a data-nav data-level="2" href="#docs-health-check">Docs health check</a>
 <a data-nav data-level="1" href="#current-state-protocol">Current-state protocol</a>
 <a data-nav data-level="1" href="#operating-rules">Operating rules</a>
 </details>
-<details class="nav-group"><summary>Appendices</summary>
+<details class="nav-group" data-nav-group="Appendices"><summary>Appendices</summary>
 <a data-nav data-level="1" href="#appendix-a-chatgpt-project-workflow-primer">Appendix A - ChatGPT Project workflow primer</a>
 <a data-nav data-level="1" href="#appendix-b-key-terms">Appendix B - Key terms</a>
 <a data-nav data-level="1" href="#appendix-c-standard-repo-docs">Appendix C - Standard repo docs</a>
 <a data-nav data-level="1" href="#appendix-d-codex-worktrees">Appendix D - Codex worktrees</a>
 <a data-nav data-level="1" href="#appendix-e-common-powershell-commands">Appendix E - Common PowerShell commands</a>
 </details>
-<details class="nav-group"><summary>Other sections</summary>
-<a data-nav data-level="2" href="#stage-2a-optional-codex-worktree-setup-and-cleanup-scripts">Stage 2A - Optional Codex worktree setup and cleanup scripts</a>
-<a data-nav data-level="2" href="#loop-step-a-ground-a-new-chatgpt-chat-in-the-repo">Loop Step A - Ground a new ChatGPT chat in the repo</a>
+<details class="nav-group" data-nav-group="Other sections"><summary>Other sections</summary>
 <a data-nav data-level="2" href="#navigation">Navigation</a>
 <a data-nav data-level="2" href="#git-status-and-freshness">Git status and freshness</a>
 <a data-nav data-level="2" href="#commit-and-push">Commit and push</a>
