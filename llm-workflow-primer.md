@@ -62,9 +62,9 @@ Do not restate all project context when the repo docs already contain it. Keep h
 
 Codex owns documentation freshness during implementation. Every implementation should update `docs/current-task.md`. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
 
-Every Codex final report should include a documentation delta and a compact state packet.
+Every Codex final report should include a documentation delta that says which docs changed and why.
 
-The state packet is not a source of truth. It is a transition note that helps the next ChatGPT session orient quickly. Repo docs remain authoritative.
+ChatGPT should inspect repo docs at the target branch whenever current state matters. Prior chat context and final reports are orientation only; repo docs remain authoritative.
 
 ## ChatGPT behavior
 

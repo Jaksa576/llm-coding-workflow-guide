@@ -37,7 +37,6 @@
 </details>
 <details class="nav-group" open><summary>Implementation loop</summary>
 <a data-nav data-level="1" href="#main-implementation-loop">Main implementation loop</a>
-<a data-nav data-level="2" href="#loop-step-a-start-or-refresh-the-chatgpt-chat">Loop Step A - Start or refresh the ChatGPT chat</a>
 <a data-nav data-level="2" href="#loop-step-b-plan-the-next-work-item">Loop Step B - Plan the next work item</a>
 <a data-nav data-level="2" href="#loop-step-c-generate-the-next-codex-handoff">Loop Step C - Generate the next Codex handoff</a>
 <a data-nav data-level="2" href="#loop-step-d-let-codex-implement">Loop Step D - Let Codex implement</a>
@@ -48,7 +47,6 @@
 <details class="nav-group"><summary>Docs and protocols</summary>
 <a data-nav data-level="1" href="#documentation-freshness-system">Documentation freshness system</a>
 <a data-nav data-level="2" href="#documentation-delta">Documentation delta</a>
-<a data-nav data-level="2" href="#state-packet">State packet</a>
 <a data-nav data-level="2" href="#docs-health-check">Docs health check</a>
 <a data-nav data-level="1" href="#current-state-protocol">Current-state protocol</a>
 <a data-nav data-level="1" href="#operating-rules">Operating rules</a>
@@ -61,6 +59,8 @@
 <a data-nav data-level="1" href="#appendix-e-common-powershell-commands">Appendix E - Common PowerShell commands</a>
 </details>
 <details class="nav-group"><summary>Other sections</summary>
+<a data-nav data-level="2" href="#stage-2a-optional-codex-worktree-setup-and-cleanup-scripts">Stage 2A - Optional Codex worktree setup and cleanup scripts</a>
+<a data-nav data-level="2" href="#loop-step-a-ground-a-new-chatgpt-chat-in-the-repo">Loop Step A - Ground a new ChatGPT chat in the repo</a>
 <a data-nav data-level="2" href="#navigation">Navigation</a>
 <a data-nav data-level="2" href="#git-status-and-freshness">Git status and freshness</a>
 <a data-nav data-level="2" href="#commit-and-push">Commit and push</a>
@@ -117,7 +117,7 @@
 <li><span class="term" tabindex="0" data-tip="The first implementation run that creates the working shell, validation path, and initial deploy/run setup.">Bootstrap</span> the project with Codex.</li>
 <li>Review the bootstrap and first deploy/run.</li>
 <li>Start the main implementation loop.</li>
-<li>Repeat: plan work -&gt; generate handoff -&gt; implement -&gt; docs/state update -&gt; QA -&gt; merge or patch.</li>
+<li>Repeat: plan work -&gt; generate handoff -&gt; implement -&gt; docs update -&gt; QA -&gt; merge or patch.</li>
 <li>Close out campaigns and start a new chat for the next phase.</li>
 </ol>
 <p>Most time is spent in the implementation loop, not setup.</p>
@@ -144,7 +144,7 @@ Default environment: Windows-native workflow with PowerShell. Do not assume WSL 
 
 When current repo state matters, inspect the project repo through the configured GitHub connector at the target branch first. If connector access is unavailable, ask me to provide only the smallest specific missing file or input. Do not rely on memory or prior chat assumptions.
 
-Prefer step-by-step guidance, lean Codex handoffs, reviewable slices, clear stop conditions, documentation delta requirements, and final state packets from coding agents.</code></pre></div>
+Prefer step-by-step guidance, lean Codex handoffs, reviewable slices, clear stop conditions, documentation delta requirements, and clear final reports from coding agents.</code></pre></div>
 <h2 id="stage-1a-add-the-compact-workflow-primer"><a class="heading-anchor" href="#stage-1a-add-the-compact-workflow-primer">#</a>Stage 1A - Add the compact workflow primer</h2>
 <p>Add the compact workflow primer to each ChatGPT Project as a source file. Do <strong>not</strong> add the full HTML guide unless you specifically want it available for reference.</p>
 <p>Why this split exists:</p>
@@ -177,16 +177,174 @@ Please verify whether you can inspect these files from the configured GitHub rep
 Rules:
 - Inspect the target branch before using prior chat state.
 - Treat repo docs as authoritative.
-- Treat state packets as transition notes only.
 - If you cannot access a needed file, ask me for only that file.
 - If the branch is unmerged, do not assume main includes its changes.
 - If docs conflict, stop and call out the conflict before recommending next steps.</code></pre></div>
 <h2 id="stage-2-configure-codex-before-handoffs"><a class="heading-anchor" href="#stage-2-configure-codex-before-handoffs">#</a>Stage 2 - Configure Codex before handoffs</h2>
 <p>Configure Codex before any Codex handoff is created. Point Codex at the local repo path. Confirm it can see the repo, the branch is correct, Git status is clean or intentionally empty, and worktree/local environment settings are configured.</p>
 <p>Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.</p>
+<h2 id="stage-2a-optional-codex-worktree-setup-and-cleanup-scripts"><a class="heading-anchor" href="#stage-2a-optional-codex-worktree-setup-and-cleanup-scripts">#</a>Stage 2A - Optional Codex worktree setup and cleanup scripts</h2>
+<p>For projects that use Codex worktrees, keep repeatable setup and cleanup logic in repo scripts instead of repeating it in every handoff.</p>
+<p>Use setup scripts to prepare the worktree before Codex starts coding. Use cleanup scripts to remove disposable generated folders after a worktree is finished or before a fresh install.</p>
+<p>Good setup scripts should:</p>
+<ul>
+<li>run from the repo root</li>
+<li>show tool versions</li>
+<li>fetch and prune Git refs</li>
+<li>stop if the worktree appears stale, detached from known branch tips, behind upstream, or diverged</li>
+<li>copy local-only environment files only from a user-controlled path</li>
+<li>validate required environment keys without printing secret values</li>
+<li>install dependencies using the project&#x27;s package manager</li>
+<li>fail loudly instead of continuing with a partial environment</li>
+</ul>
+<p>Good cleanup scripts should:</p>
+<ul>
+<li>remove only disposable generated folders</li>
+<li>never delete source files, docs, migrations, config, or local secrets</li>
+<li>be safe to run more than once</li>
+</ul>
+<p>Keep app-specific details as variables near the top of the script.</p>
+<p>Generic cleanup template:</p>
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-4">Copy</button></div><pre><code id="code-4">$ErrorActionPreference = &quot;Stop&quot;
+
+Write-Host &quot;Running Codex cleanup script from:&quot; (Get-Location)
+
+$pathsToRemove = @(
+  &quot;.next&quot;,
+  &quot;node_modules&quot;,
+  &quot;coverage&quot;,
+  &quot;playwright-report&quot;,
+  &quot;test-results&quot;,
+  &quot;.vercel&quot;,
+  &quot;.turbo&quot;
+)
+
+foreach ($path in $pathsToRemove) {
+  if (Test-Path $path) {
+    Write-Host &quot;Removing disposable path: $path&quot;
+    Remove-Item -Recurse -Force $path -ErrorAction SilentlyContinue
+  } else {
+    Write-Host &quot;Not present, skipping: $path&quot;
+  }
+}
+
+Write-Host &quot;Codex cleanup complete.&quot;</code></pre></div>
+<p>Generic setup template:</p>
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-5">Copy</button></div><pre><code id="code-5">$ErrorActionPreference = &quot;Stop&quot;
+
+# App-specific settings
+$SourceEnvPath = &quot;{{Optional path to source .env.local, or leave blank}}&quot;
+$RequiredEnvKeys = @(
+  &quot;{{OPTIONAL_REQUIRED_ENV_KEY}}&quot;
+)
+$RequiredRepoFiles = @(
+  &quot;package.json&quot;
+)
+$InstallCommand = &quot;npm install&quot;
+
+Write-Host &quot;========================================&quot;
+Write-Host &quot;Codex Worktree Setup&quot;
+Write-Host &quot;========================================&quot;
+Write-Host &quot;Working directory:&quot; (Get-Location)
+Write-Host &quot;&quot;
+
+Write-Host &quot;Tool versions:&quot;
+git --version
+if (Get-Command node -ErrorAction SilentlyContinue) { node -v }
+if (Get-Command npm -ErrorAction SilentlyContinue) { npm -v }
+if (Get-Command gh -ErrorAction SilentlyContinue) { gh --version }
+Write-Host &quot;&quot;
+
+Write-Host &quot;Fetching latest Git refs...&quot;
+git fetch --all --prune
+if ($LASTEXITCODE -ne 0) {
+  throw &quot;Git fetch failed. Cannot verify worktree freshness.&quot;
+}
+
+$head = (git rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($head)) {
+  throw &quot;Unable to determine current HEAD.&quot;
+}
+
+Write-Host &quot;Current HEAD: $head&quot;
+
+$matchingLocalBranches = @(
+  git for-each-ref refs/heads --format=&#x27;%(refname:short) %(objectname)&#x27; |
+    ForEach-Object {
+      $parts = $_ -split &#x27; &#x27;
+      if ($parts.Length -ge 2 -and $parts[1] -eq $head) {
+        $parts[0]
+      }
+    }
+)
+
+$matchingRemoteBranches = @(
+  git for-each-ref refs/remotes --format=&#x27;%(refname:short) %(objectname)&#x27; |
+    Where-Object { -not $_.StartsWith(&quot;origin/HEAD &quot;) } |
+    ForEach-Object {
+      $parts = $_ -split &#x27; &#x27;
+      if ($parts.Length -ge 2 -and $parts[1] -eq $head) {
+        $parts[0]
+      }
+    }
+)
+
+if ($matchingLocalBranches.Count -eq 0 -and $matchingRemoteBranches.Count -eq 0) {
+  git log --oneline --decorate -5
+  throw &quot;Stopping setup: this worktree HEAD is not the current tip of any known local or remote branch after fetch.&quot;
+}
+
+foreach ($file in $RequiredRepoFiles) {
+  if (-not (Test-Path $file)) {
+    throw &quot;Required repo file not found: $file. Run this script from the project root or update RequiredRepoFiles.&quot;
+  }
+}
+
+$targetEnv = Join-Path (Get-Location) &quot;.env.local&quot;
+
+if (-not (Test-Path $targetEnv) -and -not [string]::IsNullOrWhiteSpace($SourceEnvPath)) {
+  if (-not (Test-Path $SourceEnvPath)) {
+    throw &quot;.env.local missing in worktree and source path does not exist: $SourceEnvPath&quot;
+  }
+
+  Copy-Item $SourceEnvPath $targetEnv -Force -ErrorAction Stop
+  Write-Host &quot;.env.local copied into worktree.&quot;
+}
+
+if ($RequiredEnvKeys.Count -gt 0) {
+  if (-not (Test-Path $targetEnv)) {
+    throw &quot;.env.local is required but missing.&quot;
+  }
+
+  foreach ($key in $RequiredEnvKeys) {
+    if ([string]::IsNullOrWhiteSpace($key) -or $key.Contains(&quot;{{&quot;)) {
+      continue
+    }
+
+    if (-not (Select-String -Path $targetEnv -Pattern &quot;^$key=&quot; -Quiet)) {
+      throw &quot;$key missing from .env.local&quot;
+    }
+  }
+
+  Write-Host &quot;.env.local validation passed.&quot;
+}
+
+if (-not [string]::IsNullOrWhiteSpace($InstallCommand)) {
+  Write-Host &quot;Running dependency install command: $InstallCommand&quot;
+  Invoke-Expression $InstallCommand
+
+  if ($LASTEXITCODE -ne 0) {
+    throw &quot;Dependency install command failed.&quot;
+  }
+}
+
+Write-Host &quot;&quot;
+Write-Host &quot;========================================&quot;
+Write-Host &quot;Codex environment setup complete.&quot;
+Write-Host &quot;========================================&quot;</code></pre></div>
 <h2 id="stage-3-define-the-project"><a class="heading-anchor" href="#stage-3-define-the-project">#</a>Stage 3 - Define the project</h2>
 <p>Paste this into the ChatGPT Project. Fill in the double-brace prompts with your project idea, constraints, and local path.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-4">Copy</button></div><pre><code id="code-4">Help me define a new software project for an LLM-assisted coding workflow.
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-6">Copy</button></div><pre><code id="code-6">Help me define a new software project for an LLM-assisted coding workflow.
 
 Project idea:
 {{Describe the project idea in plain language}}
@@ -222,7 +380,7 @@ Please produce:
 <h2 id="stage-4-generate-project-specific-chatgpt-instructions"><a class="heading-anchor" href="#stage-4-generate-project-specific-chatgpt-instructions">#</a>Stage 4 - Generate project-specific ChatGPT instructions</h2>
 <p>Use this after the project direction is clear. Copy the generated instructions into the ChatGPT Project Instructions field.</p>
 <p>The generated instructions should be short and app-specific. They should reference the compact workflow primer instead of duplicating it.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-5">Copy</button></div><pre><code id="code-5">Create concise ChatGPT Project Instructions for this software project.
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-7">Copy</button></div><pre><code id="code-7">Create concise ChatGPT Project Instructions for this software project.
 
 Project name:
 {{What is the project name?}}
@@ -242,7 +400,7 @@ The ChatGPT Project will include the compact LLM workflow primer as a source fil
 
 Instructions architecture:
 - Project Instructions should be app-specific and concise.
-- The workflow primer covers campaign/slice/patch workflow, documentation freshness, state packets, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.
+- The workflow primer covers campaign/slice/patch workflow, documentation freshness, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.
 - Repo docs are the source of truth for product, architecture, roadmap, and current task. When connector access is available, inspect repo docs at the target branch before asking for pasted docs.
 
 Environment:
@@ -266,7 +424,7 @@ Do not require a standard project/repository/header block by default. Codex shou
 Keep the instruction block concise and purposeful. Avoid restating the full workflow primer or duplicating repo docs.</code></pre></div>
 <h2 id="stage-5-generate-the-core-repo-docs"><a class="heading-anchor" href="#stage-5-generate-the-core-repo-docs">#</a>Stage 5 - Generate the core repo docs</h2>
 <p>Generate the docs that both ChatGPT and Codex will use as source of truth. These docs should be concise, not historical.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-6">Copy</button></div><pre><code id="code-6">Create the initial source-of-truth repo docs for this project.
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-8">Copy</button></div><pre><code id="code-8">Create the initial source-of-truth repo docs for this project.
 
 Project name:
 {{What is the project name?}}
@@ -318,13 +476,13 @@ Output each file in a separate fenced markdown block with the file path as the h
 <li><code>docs/current-task.md</code></li>
 </ul>
 <p>Then run:</p>
-<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-7">Copy</button></div><pre><code id="code-7">git status
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-9">Copy</button></div><pre><code id="code-9">git status
 git add AGENTS.md docs/product.md docs/architecture.md docs/roadmap.md docs/current-task.md
 git commit -m &quot;Add initial project source-of-truth docs&quot;
 git push origin main</code></pre></div>
 <h2 id="stage-7-bootstrap-the-project"><a class="heading-anchor" href="#stage-7-bootstrap-the-project">#</a>Stage 7 - <span class="term" tabindex="0" data-tip="The first implementation run that creates the working shell, validation path, and initial deploy/run setup.">Bootstrap</span> the project</h2>
 <p><span class="term" tabindex="0" data-tip="The first implementation run that creates the working shell, validation path, and initial deploy/run setup.">Bootstrap</span> creates the first working shell, validation path, and optional first deploy/run. It does not build the full MVP unless the project is tiny. Use ChatGPT to generate the Codex handoff, then paste the result into Codex.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-8">Copy</button></div><pre><code id="code-8">Before creating the handoff, inspect repo docs at the target branch through the configured GitHub connector if available. If connector access is unavailable, ask for only the smallest missing doc.
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-10">Copy</button></div><pre><code id="code-10">Before creating the handoff, inspect repo docs at the target branch through the configured GitHub connector if available. If connector access is unavailable, ask for only the smallest missing doc.
 
 Create a lean Codex-ready bootstrap handoff.
 
@@ -360,20 +518,17 @@ The Codex handoff must include:
 - acceptance criteria
 - validation expectations
 - documentation delta expectations
-- state packet expectation in the final report
 - final reporting expectations
 
 Keep the handoff copy-paste ready.
 Do not include command-by-command worktree setup unless it is required for this specific task.</code></pre></div>
 <h2 id="stage-8-review-bootstrap"><a class="heading-anchor" href="#stage-8-review-bootstrap">#</a>Stage 8 - Review bootstrap</h2>
-<p>After Codex finishes, paste its final report into ChatGPT. The final report should include a documentation delta and state packet.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-9">Copy</button></div><pre><code id="code-9">Review this completed bootstrap and help me decide the next step.
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-11">Copy</button></div><pre><code id="code-11">Review this completed bootstrap and help me decide the next step.
 
 Branch:
 {{What branch did Codex use?}}
 
 Codex final report:
-{{Paste the Codex final report, including the documentation delta and state packet if present}}
 
 Preview, deploy, or local run result:
 {{Describe the preview, deploy, or local run result}}
@@ -388,22 +543,17 @@ Please do the following:
 4. recommend whether to merge, patch, or hold
 5. if ready, recommend the first implementation campaign or standalone slice
 6. if ready, summarize what the next work item should accomplish
-
-Use the state packet as orientation only. If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable.</code></pre></div>
+</code></pre></div>
 <h1 id="main-implementation-loop"><a class="heading-anchor" href="#main-implementation-loop">#</a>Main implementation loop</h1>
-<p>Start a new ChatGPT chat at the beginning of a new campaign or major phase. Use the state packet from the most recent Codex report as a transition note, not as source of truth. Ask ChatGPT to inspect repo docs at the target branch when current state matters.</p>
-<h2 id="loop-step-a-start-or-refresh-the-chatgpt-chat"><a class="heading-anchor" href="#loop-step-a-start-or-refresh-the-chatgpt-chat">#</a>Loop Step A - Start or refresh the ChatGPT chat</h2>
-<p>Use this at the start of a new campaign, after campaign closeout, or whenever the chat context feels stale.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-10">Copy</button></div><pre><code id="code-10">I am starting a new ChatGPT chat for an existing project.
-
+<p>Start a new ChatGPT chat at the beginning of a new campaign or major phase. Ask ChatGPT to inspect repo docs at the target branch when current state matters.</p>
+<h2 id="loop-step-a-ground-a-new-chatgpt-chat-in-the-repo"><a class="heading-anchor" href="#loop-step-a-ground-a-new-chatgpt-chat-in-the-repo">#</a>Loop Step A - Ground a new ChatGPT chat in the repo</h2>
+<p>Use this at the start of a new ChatGPT chat, after campaign closeout, or whenever the chat context feels stale. This step is only for grounding. Do not plan new work here; use Step B or Step C for that.</p>
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-12">Copy</button></div><pre><code id="code-12">I am starting a new ChatGPT chat for an existing project.
 
 Target branch:
 {{What is the target branch?}}
 
-Most recent Codex state packet:
-{{Paste the latest state packet if you are using state packets in your workflow, or write &quot;none&quot;}}
-
-Please re-establish context by inspecting repo docs at the target branch. If connector access is unavailable, ask me for only the smallest missing file from:
+Please re-establish context by inspecting repo docs at the target branch:
 - AGENTS.md
 - docs/product.md
 - docs/architecture.md
@@ -413,15 +563,19 @@ Please re-establish context by inspecting repo docs at the target branch. If con
 
 Rules:
 - Treat repo docs as authoritative.
-- Treat the state packet as a transition note only.
 - Do not rely on memory from prior chats.
-- If you cannot inspect a needed file through the connector, ask me for only that file.
+- If connector access is unavailable, ask me for only the smallest missing file.
+- If docs conflict, call out the conflict before recommending next steps.
 
-After re-establishing context, help me with:
-{{What do you want ChatGPT to help with?}}</code></pre></div>
+After reading the docs, summarize:
+1. current product direction
+2. current architecture/state
+3. active work item or campaign
+4. next action according to docs/current-task.md
+5. any doc conflicts or stale areas</code></pre></div>
 <h2 id="loop-step-b-plan-the-next-work-item"><a class="heading-anchor" href="#loop-step-b-plan-the-next-work-item">#</a>Loop Step B - Plan the next work item</h2>
 <p>Use this for a campaign, a standalone slice, or a patch. <span class="term" tabindex="0" data-tip="A large swath of related work broken into reviewable slices.">Campaign</span> planning is part of the repeatable loop, not just first-time setup.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-11">Copy</button></div><pre><code id="code-11">Before planning, do a fresh source-of-truth check using repo docs at the target branch.
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-13">Copy</button></div><pre><code id="code-13">Before planning, do a fresh source-of-truth check using repo docs at the target branch.
 
 Work mode:
 {{Which work type do you want to do? (Campaign, Single slice, or Patch)}}
@@ -430,7 +584,10 @@ Target branch:
 {{What is the target branch?}}
 
 Current objective:
-{{Provide the current objective you want to accomplish and include any recent context or constraints that may be relevant}}
+{{What do you want to accomplish?}}
+
+Additional context:
+{{Anything important that is not already in repo docs, or write &quot;none&quot;}}
 
 Please inspect the configured GitHub repo at the target branch, or ask me for only the smallest missing file if connector access is unavailable:
 - AGENTS.md
@@ -460,13 +617,14 @@ If Work mode is SINGLE_SLICE, produce a concise implementation plan with:
 If Work mode is PATCH, produce a narrow patch plan with:
 1. issues to fix and expected behavior
 2. non-goals
-3. validation expectations
-4. risks
+3. acceptance criteria
+4. validation expectations
+5. risks
 
 The plan should support large swaths when appropriate, but keep each implementation step independently reviewable.</code></pre></div>
 <h2 id="loop-step-c-generate-the-next-codex-handoff"><a class="heading-anchor" href="#loop-step-c-generate-the-next-codex-handoff">#</a>Loop Step C - Generate the next Codex handoff</h2>
 <p>Use this for a campaign slice, standalone slice, or patch. The prompt intentionally does not ask for the repo URL because the ChatGPT Project Instructions should already contain it. Branch context still matters.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-12">Copy</button></div><pre><code id="code-12">Before creating the handoff, do a fresh source-of-truth check using repo docs at the target branch.
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-14">Copy</button></div><pre><code id="code-14">Before creating the handoff, do a fresh source-of-truth check using repo docs at the target branch.
 
 Work type:
 {{What type of handoff is this? (Campaign slice, Standalone slice, or Patch)}}
@@ -504,7 +662,6 @@ A normal handoff should include:
 - acceptance criteria
 - validation expectations
 - documentation delta expectations
-- state packet expectation in the final report
 - stop conditions
 - final reporting expectations
 
@@ -530,12 +687,11 @@ Rules:
 <li>files changed</li>
 <li>validation results</li>
 <li>documentation delta</li>
-<li>state packet</li>
 <li>manual QA recommendations</li>
 <li>known risks</li>
 </ul>
 <h2 id="loop-step-e-qa-and-decide-merge-or-patch"><a class="heading-anchor" href="#loop-step-e-qa-and-decide-merge-or-patch">#</a>Loop Step E - QA and decide merge or patch</h2>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-13">Copy</button></div><pre><code id="code-13">Help me review this completed implementation.
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-15">Copy</button></div><pre><code id="code-15">Help me review this completed implementation.
 
 Branch:
 {{What branch did Codex use?}}
@@ -544,7 +700,6 @@ Work type:
 {{What type of work was completed? (Campaign slice, Standalone slice, or Patch)}}
 
 Codex final report:
-{{Paste the Codex final report, including the documentation delta and state packet if present}}
 
 Preview/local test context:
 {{Describe the preview or local test result}}
@@ -560,39 +715,35 @@ Please do the following:
 5. tell me exactly what to manually QA
 6. recommend one of: merge, narrow patch, revise plan/campaign, or abandon branch
 7. if a patch is needed, create a lean Codex-ready patch handoff
-
-Use the state packet as orientation only. If current repo state matters, inspect repo docs at the target branch first, or ask me for the specific missing files if connector access is unavailable. If the branch is unmerged, do not assume main includes the changes unless I say it was merged.</code></pre></div>
+</code></pre></div>
 <h2 id="loop-step-f-patch-when-needed"><a class="heading-anchor" href="#loop-step-f-patch-when-needed">#</a>Loop Step F - <span class="term" tabindex="0" data-tip="A narrow correction to a specific branch or issue.">Patch</span> when needed</h2>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-14">Copy</button></div><pre><code id="code-14">Create a narrow Codex-ready patch handoff.
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-16">Copy</button></div><pre><code id="code-16">Create a narrow Codex-ready patch handoff.
 
 Branch to patch:
 {{What branch should Codex patch?}}
 
-Patch context:
-{{Add any branch or implementation context Codex should know, or write &quot;none&quot;}}
-
 Issues to fix:
 {{List the issues this patch should fix}}
 
-Scope:
-Only fix the issues listed above.
+Additional context:
+{{Anything Codex needs that is not already in repo docs, or write &quot;none&quot;}}
 
-Non-goals:
+Please inspect repo docs at the target branch if current state matters. Then generate a concise patch handoff with:
+1. goal
+2. source-of-truth docs to inspect
+3. scope
+4. non-goals
+5. acceptance criteria
+6. validation expectations
+7. documentation delta expectations
+8. final reporting expectations
+
+Rules:
+- Only fix the listed issues.
 - Do not redesign adjacent flows.
 - Do not start the next campaign slice unless explicitly requested.
 - Do not change schema/auth/deployment unless required and reported first.
 - Do not rewrite unrelated code.
-
-Acceptance criteria:
-{{What must be true for this patch to be accepted?}}
-
-Validation expectations:
-{{What validation should Codex run or report?}}
-
-Documentation and state update requirements:
-- Update docs/current-task.md after completion.
-- Update campaign/architecture/roadmap docs only if this patch changes them.
-- Final report must include a documentation delta and compact state packet.
 
 Final report must include:
 - branch
@@ -600,28 +751,22 @@ Final report must include:
 - files changed
 - validation results
 - documentation delta
-- state packet
-- remaining risks
+- manual QA recommendations
+- remaining risks or follow-ups
 
 Keep this handoff short and copy-paste ready.</code></pre></div>
 <h2 id="loop-step-g-close-the-campaign-or-phase"><a class="heading-anchor" href="#loop-step-g-close-the-campaign-or-phase">#</a>Loop Step G - Close the campaign or phase</h2>
 <p>When a campaign or major phase is complete, close it out, update docs, and usually start a new ChatGPT chat for the next campaign or phase.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-15">Copy</button></div><pre><code id="code-15">Help me close out this campaign or implementation effort and prepare the project for the next stage.
-
-Work completed:
-{{What work item is being closed out?}}
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-17">Copy</button></div><pre><code id="code-17">Help me close out this work item and prepare the project for the next stage.
 
 Target branch:
 {{What is the target branch?}}
 
-Completed work:
-{{Summarize the work completed}}
+Work item to close:
+{{Which campaign, slice, patch, or phase is being closed out?}}
 
-Most recent state packet:
-{{Paste the latest state packet if you are using state packets in your workflow, or write &quot;none&quot;}}
-
-Remaining issues:
-{{List remaining issues, or write &quot;none&quot;}}
+Known remaining issues:
+{{List anything I already know, or write &quot;none&quot;}}
 
 Please do a fresh source-of-truth check using repo docs at the target branch. If connector access is unavailable, ask me for only the smallest missing file from:
 - AGENTS.md
@@ -632,40 +777,27 @@ Please do a fresh source-of-truth check using repo docs at the target branch. If
 - active campaign doc if relevant
 
 Then recommend:
-1. whether the campaign or implementation effort is complete
+1. whether the work item appears complete
 2. what docs should be updated
 3. what old context should be archived or removed from the hot path
-4. what should be the next current task
+4. what docs/current-task.md should say next
 5. whether the next step should be a patch, new campaign, standalone slice, production hardening, or pause
 6. whether I should start a new ChatGPT chat for the next phase
 7. a Codex-ready docs-update handoff if needed</code></pre></div>
 <h1 id="documentation-freshness-system"><a class="heading-anchor" href="#documentation-freshness-system">#</a>Documentation freshness system</h1>
-<p>The default workflow does not require a separate project-state file. Use <code>docs/current-task.md</code> as the active project-state document.</p>
-<p>Codex must update <code>docs/current-task.md</code> after every implementation and include a compact state packet in its final report. The state packet is not a source of truth; it is a transition note that helps the next ChatGPT session orient quickly.</p>
+<p>Use <code>docs/current-task.md</code> as the active work pointer for current status and next action.</p>
+<p>Codex must update <code>docs/current-task.md</code> after every implementation. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.</p>
+<p>ChatGPT should use the configured GitHub connector to inspect repo docs at the target branch whenever current state matters. Chat memory and prior final reports are orientation only; repo docs are authoritative.</p>
 <h2 id="documentation-delta"><a class="heading-anchor" href="#documentation-delta">#</a><span class="term" tabindex="0" data-tip="The final-report section explaining which docs changed and why.">Documentation delta</span></h2>
 <p>Every Codex final report should include:</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-16">Copy</button></div><pre><code id="code-16">Documentation delta:
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-18">Copy</button></div><pre><code id="code-18">Documentation delta:
 - docs/current-task.md: {{Summarize what changed in docs/current-task.md}}
 - campaign doc, if applicable: {{Summarize what changed, or write &quot;not applicable&quot;}}
 - docs/architecture.md: {{Summarize what changed, or write &quot;not applicable&quot;}}
 - docs/roadmap.md: {{Summarize what changed, or write &quot;not applicable&quot;}}</code></pre></div>
-<h2 id="state-packet"><a class="heading-anchor" href="#state-packet">#</a><span class="term" tabindex="0" data-tip="A compact final-report summary for the next ChatGPT session. It is not a source of truth.">State packet</span></h2>
-<p>Every Codex final report should include:</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-17">Copy</button></div><pre><code id="code-17">State packet for next ChatGPT session:
-- Project:
-- Branch:
-- Commit:
-- Merged to main: yes/no/unknown
-- Active campaign:
-- Completed work:
-- Current status:
-- Next recommended action:
-- Docs updated:
-- Manual QA needed:
-- Known risks:</code></pre></div>
 <h2 id="docs-health-check"><a class="heading-anchor" href="#docs-health-check">#</a><span class="term" tabindex="0" data-tip="A docs-only audit to align current-task, roadmap, architecture, and campaign status.">Docs health check</span></h2>
 <p>Run a docs health check after a campaign, before a major campaign, or whenever docs seem stale. Do not make this a weekly chore unless the project is moving quickly.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-18">Copy</button></div><pre><code id="code-18">Create a Codex-ready docs health check handoff.
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-19">Copy</button></div><pre><code id="code-19">Create a Codex-ready docs health check handoff.
 
 Target branch:
 {{What is the target branch?}}
@@ -706,21 +838,16 @@ Final report:
 - docs changed
 - conflicts found and resolved
 - conflicts still unresolved
-- recommended next action
-- state packet for the next ChatGPT session</code></pre></div>
+- recommended next action</code></pre></div>
 <h1 id="current-state-protocol"><a class="heading-anchor" href="#current-state-protocol">#</a>Current-state protocol</h1>
 <p>Use this whenever ChatGPT might be stale.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-19">Copy</button></div><pre><code id="code-19">Before answering, do a fresh source-of-truth check for this project.
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-20">Copy</button></div><pre><code id="code-20">Before answering, do a fresh source-of-truth check for this project.
 
 Current situation:
 {{Briefly describe why you need a source-of-truth check}}
 
-
 Target branch:
 {{What is the target branch?}}
-
-Recent state packet, if available:
-{{Paste the latest state packet if you are using state packets in your workflow, or write &quot;none&quot;}}
 
 Please inspect repo docs at the target branch for the latest versions of:
 - AGENTS.md
@@ -733,7 +860,6 @@ Please inspect repo docs at the target branch for the latest versions of:
 Rules:
 - Do not rely on memory or prior chat assumptions.
 - Treat repo docs as authoritative.
-- Treat the state packet as a transition note, not a source of truth.
 - If connector access is unavailable or a file is missing, ask me to paste or upload only the specific missing files.
 - If the branch is unmerged, do not assume main includes the branch changes.
 - If docs conflict, call out the conflict before making recommendations.
@@ -745,8 +871,7 @@ After the source-of-truth check, answer my request:
 <li>The repo is the durable memory. Chats are temporary.</li>
 <li>Codex owns doc freshness during implementation.</li>
 <li><code>docs/current-task.md</code> must be updated after every implementation.</li>
-<li>Every Codex final report must include a documentation delta and state packet.</li>
-<li>The state packet is a transition note, not a source of truth.</li>
+<li>Every Codex final report must include a documentation delta.</li>
 <li>Keep hot context small: <code>AGENTS.md</code>, product, architecture, roadmap, current-task, and the active campaign doc.</li>
 <li>Use campaigns for large swaths of work and patches for narrow fixes.</li>
 <li>Configure ChatGPT, GitHub repo access, and Codex before relying on them.</li>
@@ -758,7 +883,7 @@ After the source-of-truth check, answer my request:
 </ol>
 <h1 id="appendix-a-chatgpt-project-workflow-primer"><a class="heading-anchor" href="#appendix-a-chatgpt-project-workflow-primer">#</a>Appendix A - ChatGPT Project workflow primer</h1>
 <p>This is the compact Markdown file to add to individual ChatGPT Projects. It gives the project the reusable workflow rules without uploading the full guide.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-20">Copy</button></div><pre><code id="code-20"># LLM Coding Workflow Primer
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-21">Copy</button></div><pre><code id="code-21"># LLM Coding Workflow Primer
 
 Use this compact primer as reference material inside each ChatGPT Project. Keep the full HTML guide as the day-to-day operating manual.
 
@@ -822,9 +947,9 @@ Do not restate all project context when the repo docs already contain it. Keep h
 
 Codex owns documentation freshness during implementation. Every implementation should update `docs/current-task.md`. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
 
-Every Codex final report should include a documentation delta and a compact state packet.
+Every Codex final report should include a documentation delta that says which docs changed and why.
 
-The state packet is not a source of truth. It is a transition note that helps the next ChatGPT session orient quickly. Repo docs remain authoritative.
+ChatGPT should inspect repo docs at the target branch whenever current state matters. Prior chat context and final reports are orientation only; repo docs remain authoritative.
 
 ## ChatGPT behavior
 
@@ -842,7 +967,6 @@ Start with the recommendation. Focus on what the user should do next. Prefer rev
 <li><strong><span class="term" tabindex="0" data-tip="The first implementation run that creates the working shell, validation path, and initial deploy/run setup.">Bootstrap</span>:</strong> The first implementation run that creates the working shell, validation path, and initial deploy/run setup.</li>
 <li><strong><span class="term" tabindex="0" data-tip="The pre-coding check that confirms docs, branch, and scope agree.">Readiness gate</span>:</strong> The pre-coding check that confirms docs, branch, and scope agree.</li>
 <li><strong><span class="term" tabindex="0" data-tip="The final-report section explaining which docs changed and why.">Documentation delta</span>:</strong> The final-report section explaining which docs changed and why.</li>
-<li><strong><span class="term" tabindex="0" data-tip="A compact final-report summary for the next ChatGPT session. It is not a source of truth.">State packet</span>:</strong> A compact final-report summary for the next ChatGPT session. It is not a source of truth.</li>
 <li><strong><span class="term" tabindex="0" data-tip="A docs-only audit to align current-task, roadmap, architecture, and campaign status.">Docs health check</span>:</strong> A docs-only audit to align current-task, roadmap, architecture, and campaign status.</li>
 <li><strong><span class="term" tabindex="0" data-tip="A deliberate refresh using the latest repo docs before planning, handoffs, QA, or strategy decisions.">Source-of-truth check</span>:</strong> A deliberate refresh using repo docs at the target branch before planning, handoffs, QA, or strategy decisions.</li>
 <li><strong><span class="term" tabindex="0" data-tip="A saved-prompt library for reusable prompts. It reduces typing, but does not replace repo docs or project instructions.">Prompt manager</span>:</strong> A saved-prompt library for reusable prompts. It reduces typing, but does not replace repo docs or project instructions.</li>
@@ -850,7 +974,7 @@ Start with the recommendation. Focus on what the user should do next. Prefer rev
 </ul>
 <h1 id="appendix-c-standard-repo-docs"><a class="heading-anchor" href="#appendix-c-standard-repo-docs">#</a>Appendix C - Standard repo docs</h1>
 <p>Use this default structure:</p>
-<div class="code-card"><div class="code-toolbar"><span>text</span><button class="copy-btn" type="button" data-copy-target="code-21">Copy</button></div><pre><code id="code-21">AGENTS.md
+<div class="code-card"><div class="code-toolbar"><span>text</span><button class="copy-btn" type="button" data-copy-target="code-22">Copy</button></div><pre><code id="code-22">AGENTS.md
 docs/product.md
 docs/architecture.md
 docs/roadmap.md
@@ -878,37 +1002,37 @@ docs/qa/             optional</code></pre></div>
 <li>After merge, remove the worktree.</li>
 </ol>
 <p>Common commands:</p>
-<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-22">Copy</button></div><pre><code id="code-22">git worktree list
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-23">Copy</button></div><pre><code id="code-23">git worktree list
 git worktree add ..\myapp-slice-1 -b codex\slice-1 origin/main
 git worktree remove ..\myapp-slice-1</code></pre></div>
 <h1 id="appendix-e-common-powershell-commands"><a class="heading-anchor" href="#appendix-e-common-powershell-commands">#</a>Appendix E - Common PowerShell commands</h1>
 <h2 id="navigation"><a class="heading-anchor" href="#navigation">#</a>Navigation</h2>
 <p>Use these to move around your local Windows workspace.</p>
-<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-23">Copy</button></div><pre><code id="code-23">Get-Location
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-24">Copy</button></div><pre><code id="code-24">Get-Location
 Set-Location C:\Code\MyApp
 Get-ChildItem</code></pre></div>
 <h2 id="git-status-and-freshness"><a class="heading-anchor" href="#git-status-and-freshness">#</a>Git status and freshness</h2>
 <p>Use these before starting work or when debugging branch state.</p>
-<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-24">Copy</button></div><pre><code id="code-24">git status
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-25">Copy</button></div><pre><code id="code-25">git status
 git fetch --all --prune
 git branch
 git checkout main
 git pull origin main</code></pre></div>
 <h2 id="commit-and-push"><a class="heading-anchor" href="#commit-and-push">#</a>Commit and push</h2>
 <p>Use these after making local doc changes or manual edits.</p>
-<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-25">Copy</button></div><pre><code id="code-25">git add .
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-26">Copy</button></div><pre><code id="code-26">git add .
 git commit -m &quot;Your commit message&quot;
 git push</code></pre></div>
 <h2 id="local-development"><a class="heading-anchor" href="#local-development">#</a>Local development</h2>
 <p>Use these for Node/Next-style projects. Adjust for your stack.</p>
-<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-26">Copy</button></div><pre><code id="code-26">npm install
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-27">Copy</button></div><pre><code id="code-27">npm install
 npm run dev
 npm run build
 npm run lint
 npm test</code></pre></div>
 <h2 id="clean-generated-files"><a class="heading-anchor" href="#clean-generated-files">#</a>Clean generated files</h2>
 <p>Use these to remove generated build output when needed.</p>
-<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-27">Copy</button></div><pre><code id="code-27">Remove-Item -Recurse -Force .next
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-28">Copy</button></div><pre><code id="code-28">Remove-Item -Recurse -Force .next
 Remove-Item -Recurse -Force node_modules</code></pre></div>
 <h1 id="appendix-f-advanced-option-docsproject-statejson"><a class="heading-anchor" href="#appendix-f-advanced-option-docsproject-statejson">#</a>Appendix F - Advanced option: docs/project-state.json</h1>
 <p>The default workflow does not require <code>docs/project-state.json</code>.</p>
@@ -916,7 +1040,6 @@ Remove-Item -Recurse -Force node_modules</code></pre></div>
 <ul>
 <li><code>docs/current-task.md</code></li>
 <li>Codex documentation delta</li>
-<li>Codex state packet</li>
 </ul>
 <p>Add <code>docs/project-state.json</code> only when:</p>
 <ul>
@@ -927,7 +1050,7 @@ Remove-Item -Recurse -Force node_modules</code></pre></div>
 <li>you are building tooling around this workflow</li>
 </ul>
 <p>If you add it, keep it as a machine-readable pointer, not a narrative doc.</p>
-<div class="code-card"><div class="code-toolbar"><span>json</span><button class="copy-btn" type="button" data-copy-target="code-28">Copy</button></div><pre><code id="code-28">{
+<div class="code-card"><div class="code-toolbar"><span>json</span><button class="copy-btn" type="button" data-copy-target="code-29">Copy</button></div><pre><code id="code-29">{
   &quot;project&quot;: &quot;Project Name&quot;,
   &quot;sourceOfTruthUpdated&quot;: &quot;YYYY-MM-DD&quot;,
   &quot;targetBranch&quot;: &quot;main&quot;,
@@ -946,30 +1069,29 @@ Remove-Item -Recurse -Force node_modules</code></pre></div>
   ]
 }</code></pre></div>
 <p>If this file exists, update Codex handoffs with this extra line:</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-29">Copy</button></div><pre><code id="code-29">- Inspect docs/project-state.json after docs/current-task.md and report any mismatch.</code></pre></div>
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-30">Copy</button></div><pre><code id="code-30">- Inspect docs/project-state.json after docs/current-task.md and report any mismatch.</code></pre></div>
 <p>Do not add this file unless the project is complex enough to justify another maintained state artifact.</p>
 <hr/>
 <h1 id="appendix-h-prompt-manager-setup"><a class="heading-anchor" href="#appendix-h-prompt-manager-setup">#</a>Appendix H - Prompt Manager Setup</h1>
 <p>Use this workflow guide together with <strong>Awesome Prompts: Prompt Manager for ChatGPT, Claude, Gemini &amp; Perplexity</strong> when you frequently reuse the same ChatGPT prompts.</p>
 <p>This guide’s prompt placeholders are intentionally formatted for that extension, but they use plain-language fill-ins instead of terse variable names:</p>
-<div class="code-card"><div class="code-toolbar"><span>text</span><button class="copy-btn" type="button" data-copy-target="code-30">Copy</button></div><pre><code id="code-30">{{What is the project name?}}
+<div class="code-card"><div class="code-toolbar"><span>text</span><button class="copy-btn" type="button" data-copy-target="code-31">Copy</button></div><pre><code id="code-31">{{What is the project name?}}
 {{What is the target branch?}}
 {{Paste the Codex final report}}
 {{Paste your rough QA notes}}</code></pre></div>
 <p>Extension URL:</p>
-<div class="code-card"><div class="code-toolbar"><span>text</span><button class="copy-btn" type="button" data-copy-target="code-31">Copy</button></div><pre><code id="code-31">https://chromewebstore.google.com/detail/awesome-prompts-prompt-ma/fkdmcmcfifcfliohhcocpmnoiimcijdl</code></pre></div>
+<div class="code-card"><div class="code-toolbar"><span>text</span><button class="copy-btn" type="button" data-copy-target="code-32">Copy</button></div><pre><code id="code-32">https://chromewebstore.google.com/detail/awesome-prompts-prompt-ma/fkdmcmcfifcfliohhcocpmnoiimcijdl</code></pre></div>
 <h2 id="why-use-the-prompt-manager"><a class="heading-anchor" href="#why-use-the-prompt-manager">#</a>Why use the prompt manager</h2>
 <p>Use the extension for saved prompts you reuse often, such as current-state refresh, campaign planning, Codex handoff generation, QA cleanup, and docs health checks.</p>
 <p>Keep the HTML guide as the full operating manual. Keep the prompt manager as your quick-access prompt library.</p>
 <h2 id="suggested-placeholder-style"><a class="heading-anchor" href="#suggested-placeholder-style">#</a>Suggested placeholder style</h2>
 <p>Use short, plain-language questions inside the double braces. The placeholder should tell you exactly what to paste without making you remember a variable name.</p>
-<div class="code-card"><div class="code-toolbar"><span>text</span><button class="copy-btn" type="button" data-copy-target="code-32">Copy</button></div><pre><code id="code-32">{{What is the project name?}}
+<div class="code-card"><div class="code-toolbar"><span>text</span><button class="copy-btn" type="button" data-copy-target="code-33">Copy</button></div><pre><code id="code-33">{{What is the project name?}}
 {{What is the local repo path?}}
 {{What is the target branch?}}
 {{Paste the active campaign doc, or write &quot;none&quot;}}
 {{Which work type do you want to do? (Campaign, Single slice, or Patch)}}
 {{What slice or patch should Codex implement?}}
-{{Paste the latest state packet if you are using state packets in your workflow, or write &quot;none&quot;}}
 {{Paste the Codex final report}}
 {{Describe the preview or local test result}}
 {{Paste your rough QA notes}}
@@ -1001,7 +1123,7 @@ Remove-Item -Recurse -Force node_modules</code></pre></div>
 <h1 id="appendix-i-minimal-codex-handoff-shape"><a class="heading-anchor" href="#appendix-i-minimal-codex-handoff-shape">#</a>Appendix I - Minimal Codex handoff shape</h1>
 <p>This shape is for a normal Codex handoff when Codex is already configured for the project repo and environment.</p>
 <p>Do <strong>not</strong> add a standard project/repository/header block by default. Add branch, repo, or environment details only when the task depends on them or they are not obvious.</p>
-<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-33">Copy</button></div><pre><code id="code-33">Goal:
+<div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-34">Copy</button></div><pre><code id="code-34">Goal:
 {{What should Codex accomplish?}}
 
 Read first:
@@ -1036,7 +1158,6 @@ Docs and state:
 - Update docs/current-task.md after completion.
 - Update campaign/architecture/roadmap docs only if needed.
 - Include a documentation delta in the final report.
-- Include a compact state packet in the final report.
 
 Stop conditions:
 - {{When should Codex stop and report instead of continuing?}}
@@ -1047,7 +1168,6 @@ Final report:
 - Files changed
 - Validation results
 - Documentation delta
-- State packet
 - Manual QA recommendation
 - Follow-up risks</code></pre></div>
 </main>
