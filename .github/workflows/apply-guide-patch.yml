@@ -1,0 +1,40 @@
+name: Apply guide patch
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-guide-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Apply approved guide patch
+        run: python tools/apply_approved_guide_patch.py
+
+      - name: Render guide HTML
+        run: python tools/render_guide.py
+
+      - name: Validate guide HTML
+        run: python tools/validate_guide.py
+
+      - name: Commit guide patch output
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Apply approved guide patch'
+          file_pattern: |
+            llm_coding_workflow_guide.md
+            llm-workflow-primer.md
+            llm_coding_workflow_guide.html
+            tools/apply_approved_guide_patch.py
