@@ -317,7 +317,7 @@ if ($RequiredEnvKeys.Count -gt 0) {
   }
 
   foreach ($key in $RequiredEnvKeys) {
-    if ([string]::IsNullOrWhiteSpace($key) -or $key.Contains(&quot;{{&quot;)) {
+    if ([string]::IsNullOrWhiteSpace($key) -or $key.StartsWith(&quot;{&quot;)) {
       continue
     }
 
