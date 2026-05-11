@@ -1,24 +1,14 @@
 #!/usr/bin/env python3
-"""Reusable helper for applying approved guide edits.
-
-This temporary patch performs the approved cleanup of the generated guide's
-post-loop reference material, then resets this helper and the patch workflow to
-safe no-op/manual defaults. Trigger marker: approved cleanup 2026-05-10.
-"""
 from __future__ import annotations
 
-import re
-import textwrap
-from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-GUIDE = ROOT / "llm_coding_workflow_guide.md"
-PRIMER = ROOT / "llm-workflow-primer.md"
-WORKFLOW = ROOT / ".github" / "workflows" / "apply-guide-patch.yml"
+GUIDE = ROOT / 'llm_coding_workflow_guide.md'
+WORKFLOW = ROOT / '.github' / 'workflows' / 'apply-guide-patch.yml'
 HELPER = Path(__file__).resolve()
 
-DEFAULT_WORKFLOW = """name: Apply guide patch
+DEFAULT_WORKFLOW = '''name: Apply guide patch
 
 on:
   workflow_dispatch:
@@ -58,172 +48,29 @@ jobs:
             llm-workflow-primer.md
             llm_coding_workflow_guide.html
             tools/apply_approved_guide_patch.py
-"""
+'''
 
 DEFAULT_HELPER = r'''#!/usr/bin/env python3
-"""Reusable helper for applying approved guide edits.
-
-This script is intentionally small and conservative. It gives future guide edits a
-checked-in place for section replacements and guardrails instead of embedding large
-patch scripts in temporary workflow YAML.
-
-Typical use:
-1. Add or edit a small patch function in this file.
-2. Run this script.
-3. Run tools/render_guide.py.
-4. Run tools/validate_guide.py.
-5. Commit the source changes and generated HTML.
-"""
 from __future__ import annotations
 
-import re
-from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-GUIDE = ROOT / "llm_coding_workflow_guide.md"
-PRIMER = ROOT / "llm-workflow-primer.md"
-
-
-@dataclass
-class EditReport:
-    label: str
-    count: int
-
-
-class PatchContext:
-    def __init__(self) -> None:
-        self.reports: list[EditReport] = []
-        self.guide = GUIDE.read_text(encoding="utf-8")
-        self.primer = PRIMER.read_text(encoding="utf-8") if PRIMER.exists() else ""
-
-    def replace_exact(self, target: str, old: str, new: str, label: str, *, required: bool = True) -> None:
-        text = getattr(self, target)
-        count = text.count(old)
-        if count == 0:
-            if required:
-                raise SystemExit(f"Missing expected text for replacement: {label}")
-            print(f"SKIP: {label}")
-            return
-        setattr(self, target, text.replace(old, new))
-        self.reports.append(EditReport(label, count))
-
-    def replace_between(self, target: str, start: str, end: str, replacement: str, label: str) -> None:
-        text = getattr(self, target)
-        start_index = text.find(start)
-        if start_index < 0:
-            raise SystemExit(f"Missing start marker for {label}: {start}")
-        end_index = text.find(end, start_index + len(start))
-        if end_index < 0:
-            raise SystemExit(f"Missing end marker for {label}: {end}")
-        setattr(self, target, text[:start_index] + replacement.rstrip() + "\n\n" + text[end_index:])
-        self.reports.append(EditReport(label, 1))
-
-    def replace_regex(self, target: str, pattern: str, replacement: str, label: str, *, required: bool = True, flags: int = re.S) -> None:
-        text = getattr(self, target)
-        new_text, count = re.subn(pattern, replacement, text, flags=flags)
-        if count == 0:
-            if required:
-                raise SystemExit(f"Missing regex match for {label}")
-            print(f"SKIP: {label}")
-            return
-        setattr(self, target, new_text)
-        self.reports.append(EditReport(label, count))
-
-    def assert_absent(self, target: str, terms: list[str], label: str) -> None:
-        text = getattr(self, target)
-        lowered = text.lower()
-        for term in terms:
-            index = lowered.find(term.lower())
-            if index >= 0:
-                start = max(0, index - 160)
-                end = min(len(text), index + 240)
-                print(f"Forbidden term remains in {label}: {term}")
-                print(text[start:end])
-                raise SystemExit(1)
-
-    def write(self) -> None:
-        GUIDE.write_text(self.guide, encoding="utf-8")
-        if PRIMER.exists():
-            PRIMER.write_text(self.primer, encoding="utf-8")
-        for report in self.reports:
-            print(f"UPDATED: {report.label} ({report.count})")
-
-
-def apply_noop_patch(ctx: PatchContext) -> None:
-    """Default patch placeholder.
-
-    Future approved edits should replace this body with small, named operations.
-    Keeping the helper checked in lets workflow/YAML stay simple and reusable.
-    """
-    print("No patch operations configured. Add approved edits to apply_noop_patch().")
+GUIDE = ROOT / 'llm_coding_workflow_guide.md'
 
 
 def main() -> int:
-    ctx = PatchContext()
-    apply_noop_patch(ctx)
-    ctx.write()
+    print('No patch operations configured. Add approved edits to this helper before running it.')
+    if not GUIDE.exists():
+        raise SystemExit('Guide source not found.')
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     raise SystemExit(main())
 '''
 
-
-@dataclass
-class EditReport:
-    label: str
-    count: int
-
-
-class PatchContext:
-    def __init__(self) -> None:
-        self.reports: list[EditReport] = []
-        self.guide = GUIDE.read_text(encoding="utf-8")
-        self.primer = PRIMER.read_text(encoding="utf-8") if PRIMER.exists() else ""
-
-    def replace_between(self, target: str, start: str, end: str, replacement: str, label: str) -> None:
-        text = getattr(self, target)
-        start_index = text.find(start)
-        if start_index < 0:
-            raise SystemExit(f"Missing start marker for {label}: {start}")
-        end_index = text.find(end, start_index + len(start))
-        if end_index < 0:
-            raise SystemExit(f"Missing end marker for {label}: {end}")
-        setattr(self, target, text[:start_index] + replacement.rstrip() + "\n\n" + text[end_index:])
-        self.reports.append(EditReport(label, 1))
-
-    def replace_regex(self, target: str, pattern: str, replacement: str, label: str, *, flags: int = re.S) -> None:
-        text = getattr(self, target)
-        new_text, count = re.subn(pattern, replacement.rstrip() + "\n", text, flags=flags)
-        if count == 0:
-            raise SystemExit(f"Missing regex match for {label}")
-        setattr(self, target, new_text)
-        self.reports.append(EditReport(label, count))
-
-    def assert_absent(self, target: str, terms: list[str], label: str) -> None:
-        text = getattr(self, target)
-        lowered = text.lower()
-        for term in terms:
-            index = lowered.find(term.lower())
-            if index >= 0:
-                start = max(0, index - 160)
-                end = min(len(text), index + 240)
-                print(f"Forbidden term remains in {label}: {term}")
-                print(text[start:end])
-                raise SystemExit(1)
-
-    def write(self) -> None:
-        GUIDE.write_text(self.guide, encoding="utf-8")
-        if PRIMER.exists():
-            PRIMER.write_text(self.primer, encoding="utf-8")
-        for report in self.reports:
-            print(f"UPDATED: {report.label} ({report.count})")
-
-
-def apply_noop_patch(ctx: PatchContext) -> None:
-    stage_2a = """
+STAGE_2A = '''
 ## Stage 2A - Optional Codex worktrees
 
 Codex worktrees are optional. Use them when you want isolated implementation branches, parallel slices, or safer experimentation without disturbing your main local checkout.
@@ -231,16 +78,9 @@ Codex worktrees are optional. Use them when you want isolated implementation bra
 Keep repeatable setup and cleanup logic in repo helper scripts or Codex project settings, not in every handoff prompt. A handoff should mention worktree setup only when the task depends on it.
 
 If you use worktrees, see **Optional Codex worktrees** in the reference material for setup and cleanup templates.
-"""
-    ctx.replace_between(
-        "guide",
-        "## Stage 2A - Optional Codex worktree setup and cleanup scripts",
-        "## Stage 3 - Define the project",
-        textwrap.dedent(stage_2a),
-        "shorten Stage 2A and move scripts to reference",
-    )
+'''
 
-    reference_material = r'''
+REFERENCE_MATERIAL = r'''
 # Reference material
 
 Use this section when the main workflow points you to supporting material. It is deliberately shorter than the old appendices: the main workflow stays actionable, and reference material stays available without becoming a second manual.
@@ -270,9 +110,9 @@ Every Codex final report should include a documentation delta.
 ```md
 Documentation delta:
 - docs/current-task.md: {{Summarize what changed in docs/current-task.md}}
-- campaign doc, if applicable: {{Summarize what changed, or write "not applicable"}}
-- docs/architecture.md: {{Summarize what changed, or write "not applicable"}}
-- docs/roadmap.md: {{Summarize what changed, or write "not applicable"}}
+- campaign doc, if applicable: {{Summarize what changed, or write 'not applicable'}}
+- docs/architecture.md: {{Summarize what changed, or write 'not applicable'}}
+- docs/roadmap.md: {{Summarize what changed, or write 'not applicable'}}
 ```
 
 ## Docs health check
@@ -438,66 +278,66 @@ Good cleanup scripts should:
 Generic cleanup template:
 
 ```powershell
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
 
-Write-Host "Running Codex cleanup script from:" (Get-Location)
+Write-Host 'Running Codex cleanup script from:' (Get-Location)
 
 $pathsToRemove = @(
-  ".next",
-  "node_modules",
-  "coverage",
-  "playwright-report",
-  "test-results",
-  ".vercel",
-  ".turbo"
+  '.next',
+  'node_modules',
+  'coverage',
+  'playwright-report',
+  'test-results',
+  '.vercel',
+  '.turbo'
 )
 
 foreach ($path in $pathsToRemove) {
   if (Test-Path $path) {
-    Write-Host "Removing disposable path: $path"
+    Write-Host 'Removing disposable path:' $path
     Remove-Item -Recurse -Force $path -ErrorAction SilentlyContinue
   } else {
-    Write-Host "Not present, skipping: $path"
+    Write-Host 'Not present, skipping:' $path
   }
 }
 
-Write-Host "Codex cleanup complete."
+Write-Host 'Codex cleanup complete.'
 ```
 
 Generic setup template:
 
 ```powershell
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
 
 # App-specific settings
-$SourceEnvPath = "{{Optional path to source .env.local, or leave blank}}"
+$SourceEnvPath = '{{Optional path to source .env.local, or leave blank}}'
 $RequiredEnvKeys = @(
-  "{{OPTIONAL_REQUIRED_ENV_KEY}}"
+  '{{OPTIONAL_REQUIRED_ENV_KEY}}'
 )
 $RequiredRepoFiles = @(
-  "package.json"
+  'package.json'
 )
-$InstallCommand = "npm install"
+$InstallCommand = 'npm install'
 
-Write-Host "Codex Worktree Setup"
-Write-Host "Working directory:" (Get-Location)
+Write-Host 'Codex Worktree Setup'
+Write-Host 'Working directory:' (Get-Location)
 
-Write-Host "Tool versions:"
+Write-Host 'Tool versions:'
 git --version
 if (Get-Command node -ErrorAction SilentlyContinue) { node -v }
 if (Get-Command npm -ErrorAction SilentlyContinue) { npm -v }
 if (Get-Command gh -ErrorAction SilentlyContinue) { gh --version }
 
-Write-Host "Fetching latest Git refs..."
+Write-Host 'Fetching latest Git refs...'
 git fetch --all --prune
 if ($LASTEXITCODE -ne 0) {
-  throw "Git fetch failed. Cannot verify worktree freshness."
+  throw 'Git fetch failed. Cannot verify worktree freshness.'
 }
 
 $head = (git rev-parse HEAD).Trim()
 $matchingRefs = @(
   git for-each-ref refs/heads refs/remotes --format='%(refname:short) %(objectname)' |
-    Where-Object { -not $_.StartsWith("origin/HEAD ") } |
+    Where-Object { -not $_.StartsWith('origin/HEAD ') } |
     ForEach-Object {
       $parts = $_ -split ' '
       if ($parts.Length -ge 2 -and $parts[1] -eq $head) { $parts[0] }
@@ -506,44 +346,44 @@ $matchingRefs = @(
 
 if ($matchingRefs.Count -eq 0) {
   git log --oneline --decorate -5
-  throw "Stopping setup: this worktree HEAD is not the current tip of any known local or remote branch after fetch."
+  throw 'Stopping setup: this worktree HEAD is not the current tip of any known local or remote branch after fetch.'
 }
 
 foreach ($file in $RequiredRepoFiles) {
   if (-not (Test-Path $file)) {
-    throw "Required repo file not found: $file. Run this script from the project root or update RequiredRepoFiles."
+    throw 'Required repo file not found: ' + $file
   }
 }
 
-$targetEnv = Join-Path (Get-Location) ".env.local"
+$targetEnv = Join-Path (Get-Location) '.env.local'
 if (-not (Test-Path $targetEnv) -and -not [string]::IsNullOrWhiteSpace($SourceEnvPath)) {
   if (-not (Test-Path $SourceEnvPath)) {
-    throw ".env.local missing in worktree and source path does not exist: $SourceEnvPath"
+    throw '.env.local missing in worktree and source path does not exist: ' + $SourceEnvPath
   }
   Copy-Item $SourceEnvPath $targetEnv -Force -ErrorAction Stop
-  Write-Host ".env.local copied into worktree."
+  Write-Host '.env.local copied into worktree.'
 }
 
 if ($RequiredEnvKeys.Count -gt 0) {
   if (-not (Test-Path $targetEnv)) {
-    throw ".env.local is required but missing."
+    throw '.env.local is required but missing.'
   }
   foreach ($key in $RequiredEnvKeys) {
-    if ([string]::IsNullOrWhiteSpace($key) -or $key.StartsWith("{")) { continue }
+    if ([string]::IsNullOrWhiteSpace($key) -or $key.StartsWith('{')) { continue }
     if (-not (Select-String -Path $targetEnv -Pattern "^$key=" -Quiet)) {
-      throw "$key missing from .env.local"
+      throw $key + ' missing from .env.local'
     }
   }
-  Write-Host ".env.local validation passed."
+  Write-Host '.env.local validation passed.'
 }
 
 if (-not [string]::IsNullOrWhiteSpace($InstallCommand)) {
-  Write-Host "Running dependency install command: $InstallCommand"
+  Write-Host 'Running dependency install command:' $InstallCommand
   Invoke-Expression $InstallCommand
-  if ($LASTEXITCODE -ne 0) { throw "Dependency install command failed." }
+  if ($LASTEXITCODE -ne 0) { throw 'Dependency install command failed.' }
 }
 
-Write-Host "Codex environment setup complete."
+Write-Host 'Codex environment setup complete.'
 ```
 
 ## PowerShell cheat sheet
@@ -570,7 +410,7 @@ git log --oneline --decorate -5
 ```powershell
 git status
 git add {{Files to commit}}
-git commit -m "{{Short commit message}}"
+git commit -m '{{Short commit message}}'
 git push origin {{Branch name}}
 ```
 
@@ -626,24 +466,57 @@ Recommended prompt groups:
 
 Rule: save reusable prompts, but keep project-specific truth in repo docs. Do not let a prompt library become a hidden source of truth.
 '''
-    ctx.replace_regex(
-        "guide",
-        r"# Documentation freshness system[\s\S]*\Z",
-        textwrap.dedent(reference_material),
-        "replace post-loop protocols and appendices with compact reference material",
-    )
-    ctx.assert_absent("guide", ["docs/project-state.json", "project-state", "Appendix A", "Appendix F", "Appendix H", "Appendix I"], "cleaned guide")
-    WORKFLOW.write_text(DEFAULT_WORKFLOW, encoding="utf-8")
-    HELPER.write_text(DEFAULT_HELPER, encoding="utf-8")
-    print("Reset approved patch helper and workflow to defaults.")
+
+
+def replace_between(text: str, start: str, end: str, replacement: str, label: str) -> str:
+    start_index = text.find(start)
+    if start_index < 0:
+        raise SystemExit(f'Missing start marker for {label}: {start}')
+    end_index = text.find(end, start_index + len(start))
+    if end_index < 0:
+        raise SystemExit(f'Missing end marker for {label}: {end}')
+    return text[:start_index] + replacement.strip() + '\n\n' + text[end_index:]
 
 
 def main() -> int:
-    ctx = PatchContext()
-    apply_noop_patch(ctx)
-    ctx.write()
+    guide = GUIDE.read_text(encoding='utf-8')
+
+    guide = replace_between(
+        guide,
+        '## Stage 2A - Optional Codex worktree setup and cleanup scripts',
+        '## Stage 3 - Define the project',
+        STAGE_2A,
+        'Stage 2A worktree section',
+    )
+
+    marker = '# Documentation freshness system'
+    marker_index = guide.find(marker)
+    if marker_index < 0:
+        raise SystemExit(f'Missing post-loop marker: {marker}')
+    guide = guide[:marker_index] + REFERENCE_MATERIAL.strip() + '\n'
+
+    forbidden_terms = [
+        'docs/project-state.json',
+        'project-state',
+        'Appendix A',
+        'Appendix F',
+        'Appendix H',
+        'Appendix I',
+        'state packet',
+        'State packet',
+    ]
+    lowered = guide.lower()
+    for term in forbidden_terms:
+        if term.lower() in lowered:
+            raise SystemExit(f'Forbidden term remains after cleanup: {term}')
+
+    GUIDE.write_text(guide, encoding='utf-8')
+    WORKFLOW.write_text(DEFAULT_WORKFLOW, encoding='utf-8')
+    HELPER.write_text(DEFAULT_HELPER, encoding='utf-8')
+
+    print('Updated guide source and reset patch helper/workflow to manual defaults.')
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     raise SystemExit(main())
