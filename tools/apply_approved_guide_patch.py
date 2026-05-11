@@ -3,7 +3,7 @@
 
 This temporary patch performs the approved cleanup of the generated guide's
 post-loop reference material, then resets this helper and the patch workflow to
-safe no-op/manual defaults.
+safe no-op/manual defaults. Trigger marker: approved cleanup 2026-05-10.
 """
 from __future__ import annotations
 
