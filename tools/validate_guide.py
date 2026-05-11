@@ -115,8 +115,15 @@ def main() -> int:
     check("floating-tooltip" in html, "floating tooltip code exists", failures)
 
     implementation_hrefs = parser.nav_groups.get("Implementation loop", [])
+    setup_hrefs = parser.nav_groups.get("One-time setup", [])
+    reference_hrefs = parser.nav_groups.get("Reference material", [])
     check("#loop-step-a-ground-a-new-chatgpt-chat-in-the-repo" in implementation_hrefs, "Loop Step A is grouped under Implementation loop", failures)
-    check("#loop-step-a-ground-a-new-chatgpt-chat-in-the-repo" not in parser.nav_groups.get("Other sections", []), "Loop Step A is absent from Other sections", failures)
+    check("#stage-2a-optional-codex-worktrees" in setup_hrefs, "Stage 2A worktrees is grouped under One-time setup", failures)
+    check("#reference-material" in reference_hrefs, "Reference material top-level section is grouped under Reference material", failures)
+    check("#optional-codex-worktrees" in reference_hrefs, "Optional Codex worktrees is grouped under Reference material", failures)
+    check("Other sections" not in parser.nav_groups, "Other sections sidebar group is absent", failures)
+    check("Appendices" not in parser.nav_groups, "empty Appendices sidebar group is absent", failures)
+    check("Docs and protocols" not in parser.nav_groups, "old Docs and protocols sidebar group is absent", failures)
 
     missing_copy = [target for target in parser.copy_targets if target not in parser.code_ids]
     check(not missing_copy and bool(parser.copy_targets), f"copy buttons target existing code blocks ({len(parser.copy_targets)} checked)", failures)
@@ -126,6 +133,7 @@ def main() -> int:
     check("Connected GitHub repo:" not in html, "routine Connected GitHub repo prompt field absent", failures)
     check("Awesome Prompts" in text, "Prompt Manager section still recommends Awesome Prompts", failures)
     check("llm_coding_workflow_diagram.png" in html, "diagram uses external PNG reference", failures)
+    check("docs/project-state.json" not in html, "docs/project-state.json references absent", failures)
     check("State packet" not in text and "state packet" not in text, "state packet references absent", failures)
 
     liquid_sensitive_lines = find_liquid_sensitive_template_lines(markdown)
