@@ -14,10 +14,55 @@ GENERATED_NOTE = "This HTML guide is generated from the Markdown source by GitHu
 
 GROUPS = [
     ("Start here", ["LLM Coding Workflow Guide", "Purpose", "Why this workflow works", "Quick start"], True),
-    ("One-time setup", ["Stage 0 - Create the repo and local workspace", "Stage 1 - Create the ChatGPT Project", "Stage 1A - Add the compact workflow primer", "Stage 1B - Configure GitHub source-of-truth access", "Stage 2 - Configure Codex before handoffs", "Stage 2A - Optional Codex worktree setup and cleanup scripts", "Stage 3 - Define the project", "Stage 4 - Generate project-specific ChatGPT instructions", "Stage 5 - Generate the core repo docs", "Stage 6 - Add the core docs to the repo", "Stage 7 - Bootstrap the project", "Stage 8 - Review bootstrap"], False),
-    ("Implementation loop", ["Main implementation loop", "Loop Step A - Ground a new ChatGPT chat in the repo", "Loop Step B - Plan the next work item", "Loop Step C - Generate the next Codex handoff", "Loop Step D - Let Codex implement", "Loop Step E - QA and decide merge or patch", "Loop Step F - Patch when needed", "Loop Step G - Close the campaign or phase"], True),
-    ("Docs and protocols", ["Documentation freshness system", "Documentation delta", "Docs health check", "Current-state protocol", "Operating rules"], False),
-    ("Appendices", ["Appendix A - ChatGPT Project workflow primer", "Appendix B - Key terms", "Appendix C - Standard repo docs", "Appendix D - Codex worktrees", "Appendix E - Common PowerShell commands", "Appendix F - Prompt Manager guidance", "Appendix G - Standard reusable prompts", "Appendix I - Maintenance and versioning"], False),
+    (
+        "One-time setup",
+        [
+            "Stage 0 - Create the repo and local workspace",
+            "Stage 1 - Create the ChatGPT Project",
+            "Stage 1A - Add the compact workflow primer",
+            "Stage 1B - Configure GitHub source-of-truth access",
+            "Stage 2 - Configure Codex before handoffs",
+            "Stage 2A - Optional Codex worktrees",
+            "Stage 3 - Define the project",
+            "Stage 4 - Generate project-specific ChatGPT instructions",
+            "Stage 5 - Generate the core repo docs",
+            "Stage 6 - Add the core docs to the repo",
+            "Stage 7 - Bootstrap the project",
+            "Stage 8 - Review bootstrap",
+        ],
+        False,
+    ),
+    (
+        "Implementation loop",
+        [
+            "Main implementation loop",
+            "Loop Step A - Ground a new ChatGPT chat in the repo",
+            "Loop Step B - Plan the next work item",
+            "Loop Step C - Generate the next Codex handoff",
+            "Loop Step D - Let Codex implement",
+            "Loop Step E - QA and decide merge or patch",
+            "Loop Step F - Patch when needed",
+            "Loop Step G - Close the campaign or phase",
+        ],
+        True,
+    ),
+    (
+        "Reference material",
+        [
+            "Reference material",
+            "Keep repo docs fresh",
+            "Documentation delta",
+            "Docs health check",
+            "Current-state check prompt",
+            "Minimal Codex handoff shape",
+            "Standard repo docs",
+            "Optional Codex worktrees",
+            "PowerShell cheat sheet",
+            "Key terms",
+            "Prompt library and placeholders",
+        ],
+        False,
+    ),
 ]
 
 TERMS = {
@@ -226,13 +271,17 @@ def build_nav(headings: list[tuple[int, str, str]]) -> str:
     used: set[str] = set()
     chunks: list[str] = []
     for group_name, titles, is_open in GROUPS:
-        open_attr = " open" if is_open else ""
-        chunks.append(f'<details class="nav-group" data-nav-group="{html.escape(group_name)}"{open_attr}><summary>{html.escape(group_name)}</summary>')
+        group_links: list[str] = []
         for title in titles:
             if title in by_title:
                 level, heading_id = by_title[title]
                 used.add(heading_id)
-                chunks.append(f'<a data-nav data-level="{level}" href="#{heading_id}">{html.escape(title)}</a>')
+                group_links.append(f'<a data-nav data-level="{level}" href="#{heading_id}">{html.escape(title)}</a>')
+        if not group_links:
+            continue
+        open_attr = " open" if is_open else ""
+        chunks.append(f'<details class="nav-group" data-nav-group="{html.escape(group_name)}"{open_attr}><summary>{html.escape(group_name)}</summary>')
+        chunks.extend(group_links)
         chunks.append("</details>")
     rest = [(level, title, heading_id) for level, title, heading_id in headings if heading_id not in used and level <= 2]
     if rest:
