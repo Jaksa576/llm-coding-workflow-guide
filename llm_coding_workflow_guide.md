@@ -144,176 +144,13 @@ Rules:
 Configure Codex before any Codex handoff is created. Point Codex at the local repo path. Confirm it can see the repo, the branch is correct, Git status is clean or intentionally empty, and worktree/local environment settings are configured.
 
 Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.
-## Stage 2A - Optional Codex worktree setup and cleanup scripts
+## Stage 2A - Optional Codex worktrees
 
-For projects that use Codex worktrees, keep repeatable setup and cleanup logic in repo scripts instead of repeating it in every handoff.
+Codex worktrees are optional. Use them when you want isolated implementation branches, parallel slices, or safer experimentation without disturbing your main local checkout.
 
-Use setup scripts to prepare the worktree before Codex starts coding. Use cleanup scripts to remove disposable generated folders after a worktree is finished or before a fresh install.
+Keep repeatable setup and cleanup logic in repo helper scripts or Codex project settings, not in every handoff prompt. A handoff should mention worktree setup only when the task depends on it.
 
-Good setup scripts should:
-
-- run from the repo root
-- show tool versions
-- fetch and prune Git refs
-- stop if the worktree appears stale, detached from known branch tips, behind upstream, or diverged
-- copy local-only environment files only from a user-controlled path
-- validate required environment keys without printing secret values
-- install dependencies using the project's package manager
-- fail loudly instead of continuing with a partial environment
-
-Good cleanup scripts should:
-
-- remove only disposable generated folders
-- never delete source files, docs, migrations, config, or local secrets
-- be safe to run more than once
-
-Keep app-specific details as variables near the top of the script.
-
-Generic cleanup template:
-
-```powershell
-$ErrorActionPreference = "Stop"
-
-Write-Host "Running Codex cleanup script from:" (Get-Location)
-
-$pathsToRemove = @(
-  ".next",
-  "node_modules",
-  "coverage",
-  "playwright-report",
-  "test-results",
-  ".vercel",
-  ".turbo"
-)
-
-foreach ($path in $pathsToRemove) {
-  if (Test-Path $path) {
-    Write-Host "Removing disposable path: $path"
-    Remove-Item -Recurse -Force $path -ErrorAction SilentlyContinue
-  } else {
-    Write-Host "Not present, skipping: $path"
-  }
-}
-
-Write-Host "Codex cleanup complete."
-```
-
-Generic setup template:
-
-```powershell
-$ErrorActionPreference = "Stop"
-
-# App-specific settings
-$SourceEnvPath = "{{Optional path to source .env.local, or leave blank}}"
-$RequiredEnvKeys = @(
-  "{{OPTIONAL_REQUIRED_ENV_KEY}}"
-)
-$RequiredRepoFiles = @(
-  "package.json"
-)
-$InstallCommand = "npm install"
-
-Write-Host "========================================"
-Write-Host "Codex Worktree Setup"
-Write-Host "========================================"
-Write-Host "Working directory:" (Get-Location)
-Write-Host ""
-
-Write-Host "Tool versions:"
-git --version
-if (Get-Command node -ErrorAction SilentlyContinue) { node -v }
-if (Get-Command npm -ErrorAction SilentlyContinue) { npm -v }
-if (Get-Command gh -ErrorAction SilentlyContinue) { gh --version }
-Write-Host ""
-
-Write-Host "Fetching latest Git refs..."
-git fetch --all --prune
-if ($LASTEXITCODE -ne 0) {
-  throw "Git fetch failed. Cannot verify worktree freshness."
-}
-
-$head = (git rev-parse HEAD).Trim()
-if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($head)) {
-  throw "Unable to determine current HEAD."
-}
-
-Write-Host "Current HEAD: $head"
-
-$matchingLocalBranches = @(
-  git for-each-ref refs/heads --format='%(refname:short) %(objectname)' |
-    ForEach-Object {
-      $parts = $_ -split ' '
-      if ($parts.Length -ge 2 -and $parts[1] -eq $head) {
-        $parts[0]
-      }
-    }
-)
-
-$matchingRemoteBranches = @(
-  git for-each-ref refs/remotes --format='%(refname:short) %(objectname)' |
-    Where-Object { -not $_.StartsWith("origin/HEAD ") } |
-    ForEach-Object {
-      $parts = $_ -split ' '
-      if ($parts.Length -ge 2 -and $parts[1] -eq $head) {
-        $parts[0]
-      }
-    }
-)
-
-if ($matchingLocalBranches.Count -eq 0 -and $matchingRemoteBranches.Count -eq 0) {
-  git log --oneline --decorate -5
-  throw "Stopping setup: this worktree HEAD is not the current tip of any known local or remote branch after fetch."
-}
-
-foreach ($file in $RequiredRepoFiles) {
-  if (-not (Test-Path $file)) {
-    throw "Required repo file not found: $file. Run this script from the project root or update RequiredRepoFiles."
-  }
-}
-
-$targetEnv = Join-Path (Get-Location) ".env.local"
-
-if (-not (Test-Path $targetEnv) -and -not [string]::IsNullOrWhiteSpace($SourceEnvPath)) {
-  if (-not (Test-Path $SourceEnvPath)) {
-    throw ".env.local missing in worktree and source path does not exist: $SourceEnvPath"
-  }
-
-  Copy-Item $SourceEnvPath $targetEnv -Force -ErrorAction Stop
-  Write-Host ".env.local copied into worktree."
-}
-
-if ($RequiredEnvKeys.Count -gt 0) {
-  if (-not (Test-Path $targetEnv)) {
-    throw ".env.local is required but missing."
-  }
-
-  foreach ($key in $RequiredEnvKeys) {
-    if ([string]::IsNullOrWhiteSpace($key) -or $key.StartsWith("{")) {
-      continue
-    }
-
-    if (-not (Select-String -Path $targetEnv -Pattern "^$key=" -Quiet)) {
-      throw "$key missing from .env.local"
-    }
-  }
-
-  Write-Host ".env.local validation passed."
-}
-
-if (-not [string]::IsNullOrWhiteSpace($InstallCommand)) {
-  Write-Host "Running dependency install command: $InstallCommand"
-  Invoke-Expression $InstallCommand
-
-  if ($LASTEXITCODE -ne 0) {
-    throw "Dependency install command failed."
-  }
-}
-
-Write-Host ""
-Write-Host "========================================"
-Write-Host "Codex environment setup complete."
-Write-Host "========================================"
-```
+If you use worktrees, see **Optional Codex worktrees** in the reference material for setup and cleanup templates.
 
 ## Stage 3 - Define the project
 
@@ -827,30 +664,43 @@ Then recommend:
 7. a Codex-ready docs-update handoff if needed
 ```
 
-# Documentation freshness system
+# Reference material
+
+Use this section when the main workflow points you to supporting material. It is deliberately shorter than the old appendices: the main workflow stays actionable, and reference material stays available without becoming a second manual.
+
+## Keep repo docs fresh
 
 Use `docs/current-task.md` as the active work pointer for current status and next action.
 
-Codex must update `docs/current-task.md` after every implementation. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
+Codex should update `docs/current-task.md` after every implementation. Update campaign docs when slice status changes. Update `docs/architecture.md` or `docs/roadmap.md` only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
 
-ChatGPT should use the configured GitHub connector to inspect repo docs at the target branch whenever current state matters. Chat memory and prior final reports are orientation only; repo docs are authoritative.
+ChatGPT should inspect repo docs at the target branch whenever current state matters. Chat memory and prior final reports are orientation only; repo docs are authoritative.
+
+Golden rules:
+
+1. The repo is durable memory. Chats are temporary.
+2. Current-state checks beat chat memory.
+3. Keep Codex handoffs lean and task-specific.
+4. Prefer reviewable slices over vague large changes.
+5. Codex updates docs after implementation.
+6. The user approves product direction, QA judgment, and merge decisions.
+7. Remove stale detail from the hot path instead of letting it bury the next action.
 
 ## Documentation delta
 
-Every Codex final report should include:
+Every Codex final report should include a documentation delta.
 
 ```md
 Documentation delta:
 - docs/current-task.md: {{Summarize what changed in docs/current-task.md}}
-- campaign doc, if applicable: {{Summarize what changed, or write "not applicable"}}
-- docs/architecture.md: {{Summarize what changed, or write "not applicable"}}
-- docs/roadmap.md: {{Summarize what changed, or write "not applicable"}}
+- campaign doc, if applicable: {{Summarize what changed, or write 'not applicable'}}
+- docs/architecture.md: {{Summarize what changed, or write 'not applicable'}}
+- docs/roadmap.md: {{Summarize what changed, or write 'not applicable'}}
 ```
 
 ## Docs health check
 
 Run a docs health check after a campaign, before a major campaign, or whenever docs seem stale. Do not make this a weekly chore unless the project is moving quickly.
-
 
 ```md
 Create a Codex-ready docs health check handoff.
@@ -879,16 +729,16 @@ Documentation only. Do not implement app features.
 Tasks:
 1. Identify stale, conflicting, or bloated docs.
 2. Update docs/current-task.md so it reflects current status and next action.
-3. Update active campaign doc if slice/campaign status is stale.
+3. Update the active campaign doc only if slice or campaign status is stale.
 4. Update docs/architecture.md only if architecture changed.
 5. Update docs/roadmap.md only if roadmap status changed.
-6. Move obsolete context to archive only when clearly no longer active.
-7. Preserve useful historical context, but remove it from the hot path.
+6. Remove obsolete detail from hot-path docs when it clearly no longer helps current work.
+7. Preserve uncertainty instead of guessing.
 
 Validation:
-- Confirm docs agree on active campaign or active work item.
+- Confirm docs agree on the active campaign or active work item.
 - Confirm current status and next action are clear.
-- Report uncertainty instead of guessing.
+- Report unresolved conflicts.
 
 Final report:
 - docs changed
@@ -897,9 +747,9 @@ Final report:
 - recommended next action
 ```
 
-# Current-state protocol
+## Current-state check prompt
 
-Use this whenever ChatGPT might be stale.
+Use this whenever ChatGPT might be stale and the task depends on current repo state.
 
 ```md
 Before answering, do a fresh source-of-truth check for this project.
@@ -929,343 +779,9 @@ After the source-of-truth check, answer my request:
 {{What do you want ChatGPT to answer or help with?}}
 ```
 
-# Operating rules
+## Minimal Codex handoff shape
 
-1. The repo is the durable memory. Chats are temporary.
-2. Codex owns doc freshness during implementation.
-3. `docs/current-task.md` must be updated after every implementation.
-4. Every Codex final report must include a documentation delta.
-5. Keep hot context small: `AGENTS.md`, product, architecture, roadmap, current-task, and the active campaign doc.
-6. Use campaigns for large swaths of work and patches for narrow fixes.
-7. Configure ChatGPT, GitHub repo access, and Codex before relying on them.
-8. Inspect repo docs through the configured GitHub connector before asking for pasted docs when current state matters.
-9. Use Windows + PowerShell by default.
-10. Keep Codex worktree setup in Codex configuration or helper scripts, not normal handoffs.
-11. Stop when docs conflict.
-12. Archive old handoffs, obsolete campaign docs, long slice logs, and stale instructions.
-
-# Appendix A - ChatGPT Project workflow primer
-
-This is the compact Markdown file to add to individual ChatGPT Projects. It gives the project the reusable workflow rules without uploading the full guide.
-
-```md
-# LLM Coding Workflow Primer
-
-Use this compact primer as reference material inside each ChatGPT Project. Keep the full HTML guide as the day-to-day operating manual.
-
-## Core workflow
-
-Use ChatGPT for planning, roadmap decisions, QA triage, and coding-agent handoffs. Use Codex or another coding agent for repo-based implementation. The user remains the product owner and approves direction, QA, and merge decisions.
-
-The repository is the durable memory. Chat history is temporary.
-
-## Default environment
-
-Assume a Windows-native workflow with PowerShell unless the user explicitly says otherwise. Do not assume WSL. Use Windows paths such as `C:\Code\ProjectName` when examples are needed.
-
-## Source-of-truth docs
-
-When current state matters, inspect the project repo through the configured GitHub connector at the target branch first. If connector access is unavailable, ask for only the smallest missing file or doc needed to continue.
-
-Core docs to inspect:
-
-- `AGENTS.md`
-- `docs/product.md`
-- `docs/architecture.md`
-- `docs/roadmap.md`
-- `docs/current-task.md`
-- active `docs/campaigns/*.md` files when relevant
-
-Do not rely on memory or prior chat assumptions when repo state matters. If docs conflict, call out the conflict before recommending next steps.
-
-## Implementation loop
-
-Use the same loop for most work:
-
-1. Refresh current state from repo docs on the target branch.
-2. Plan a campaign, slice, or patch.
-3. Generate a lean Codex handoff.
-4. Codex implements, validates, updates docs, commits, and reports back.
-5. The user QA reviews the preview/local result.
-6. Merge, patch, revise the campaign, or stop.
-
-Use a campaign for a large swath of related work. Use a slice for one independently reviewable unit of implementation. Use a patch for a narrow correction.
-
-## Codex handoff expectations
-
-Codex handoffs should include:
-
-- goal
-- source-of-truth docs to inspect
-- readiness gate
-- scope
-- non-goals
-- files likely to change
-- acceptance criteria
-- validation expectations
-- documentation expectations
-- stop conditions
-- final reporting expectations
-
-Do not restate all project context when the repo docs already contain it. Keep handoffs copy-paste ready.
-
-## Documentation freshness
-
-Codex owns documentation freshness during implementation. Every implementation should update `docs/current-task.md`. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
-
-Every Codex final report should include a documentation delta that says which docs changed and why.
-
-ChatGPT should inspect repo docs at the target branch whenever current state matters. Prior chat context and final reports are orientation only; repo docs remain authoritative.
-
-## ChatGPT behavior
-
-Start with the recommendation. Focus on what the user should do next. Prefer reviewable slices. Use the configured GitHub connector before asking for pasted docs when current state matters. Push back on unclear scope, overengineering, generic product drift, stale docs, and unnecessary AI dependencies.
-```
-
----
-
-# Appendix B - Key terms
-
-- **Planning LLM:** The conversational model used for strategy, planning, QA triage, and handoff generation. In this workflow, ChatGPT.
-- **Coding agent:** The tool that works directly in the repo to edit files, run checks, commit, and push. In this workflow, Codex.
-- **Source-of-truth docs:** The repo docs that define current product, architecture, roadmap, and active work.
-- **Hot context:** The small set of files an agent should read for the current task.
-- **Campaign:** A large swath of related work broken into reviewable slices.
-- **Slice:** One independently reviewable implementation unit inside a campaign or standalone effort.
-- **Patch:** A narrow correction to a specific branch or issue.
-- **Bootstrap:** The first implementation run that creates the working shell, validation path, and initial deploy/run setup.
-- **Readiness gate:** The pre-coding check that confirms docs, branch, and scope agree.
-- **Documentation delta:** The final-report section explaining which docs changed and why.
-- **Docs health check:** A docs-only audit to align current-task, roadmap, architecture, and campaign status.
-- **Source-of-truth check:** A deliberate refresh using repo docs at the target branch before planning, handoffs, QA, or strategy decisions.
-- **Prompt manager:** A saved-prompt library for reusable prompts. It reduces typing, but does not replace repo docs or project instructions.
-- **Worktree:** A separate working directory connected to the same Git repo, useful for isolated branches.
-
-# Appendix C - Standard repo docs
-
-Use this default structure:
-
-```text
-AGENTS.md
-docs/product.md
-docs/architecture.md
-docs/roadmap.md
-docs/current-task.md
-docs/campaigns/
-docs/archive/        optional
-docs/qa/             optional
-```
-
-# Appendix D - Codex worktrees
-
-Worktrees isolate implementation branches from the main checkout.
-
-Use worktrees when starting a campaign slice, starting a patch branch, comparing branches, keeping `main` clean, or avoiding stale local state.
-
-Suggested rules:
-
-- one worktree per active implementation branch
-- remove old worktrees after merge or abandonment
-- use a freshness gate script so worktrees start from the latest remote branch
-- keep worktree setup in Codex local environment configuration or helper scripts
-
-Setup sequence:
-
-1. Keep the main repo at a stable path such as `C:\Code\ProjectName`.
-2. Configure Codex to use that repo.
-3. Configure Codex local environment setup with a PowerShell setup script.
-4. Configure cleanup with a conservative cleanup script.
-5. Use one worktree per implementation branch.
-6. After merge, remove the worktree.
-
-Common commands:
-
-```powershell
-git worktree list
-git worktree add ..\myapp-slice-1 -b codex\slice-1 origin/main
-git worktree remove ..\myapp-slice-1
-```
-
-# Appendix E - Common PowerShell commands
-
-## Navigation
-
-Use these to move around your local Windows workspace.
-
-```powershell
-Get-Location
-Set-Location C:\Code\MyApp
-Get-ChildItem
-```
-
-## Git status and freshness
-
-Use these before starting work or when debugging branch state.
-
-```powershell
-git status
-git fetch --all --prune
-git branch
-git checkout main
-git pull origin main
-```
-
-## Commit and push
-
-Use these after making local doc changes or manual edits.
-
-```powershell
-git add .
-git commit -m "Your commit message"
-git push
-```
-
-## Local development
-
-Use these for Node/Next-style projects. Adjust for your stack.
-
-```powershell
-npm install
-npm run dev
-npm run build
-npm run lint
-npm test
-```
-
-## Clean generated files
-
-Use these to remove generated build output when needed.
-
-```powershell
-Remove-Item -Recurse -Force .next
-Remove-Item -Recurse -Force node_modules
-```
-
-# Appendix F - Advanced option: docs/project-state.json
-
-The default workflow does not require `docs/project-state.json`.
-
-Most projects should use:
-
-- `docs/current-task.md`
-- Codex documentation delta
-
-Add `docs/project-state.json` only when:
-
-- multiple campaigns are active or queued
-- ChatGPT frequently struggles to identify active state
-- the project has many branches or environments
-- `docs/current-task.md` is getting too long
-- you are building tooling around this workflow
-
-If you add it, keep it as a machine-readable pointer, not a narrative doc.
-
-```json
-{
-  "project": "Project Name",
-  "sourceOfTruthUpdated": "YYYY-MM-DD",
-  "targetBranch": "main",
-  "activeCampaign": "docs/campaigns/example.md",
-  "activeSlice": "Slice 2 - Example",
-  "lastCompletedBranch": "codex/example-branch",
-  "lastCompletedCommit": "abc123",
-  "currentStatus": "awaiting manual QA",
-  "nextAction": "QA preview, then decide merge or patch",
-  "docsToInspect": [
-    "AGENTS.md",
-    "docs/product.md",
-    "docs/architecture.md",
-    "docs/roadmap.md",
-    "docs/current-task.md"
-  ]
-}
-```
-
-If this file exists, update Codex handoffs with this extra line:
-
-```md
-- Inspect docs/project-state.json after docs/current-task.md and report any mismatch.
-```
-
-Do not add this file unless the project is complex enough to justify another maintained state artifact.
-
-
----
-
-# Appendix H - Prompt Manager Setup
-
-Use this workflow guide together with **Awesome Prompts: Prompt Manager for ChatGPT, Claude, Gemini & Perplexity** when you frequently reuse the same ChatGPT prompts.
-
-This guide’s prompt placeholders are intentionally formatted for that extension, but they use plain-language fill-ins instead of terse variable names:
-
-```text
-{{What is the project name?}}
-{{What is the target branch?}}
-{{Paste the Codex final report}}
-{{Paste your rough QA notes}}
-```
-
-Extension URL:
-
-```text
-https://chromewebstore.google.com/detail/awesome-prompts-prompt-ma/fkdmcmcfifcfliohhcocpmnoiimcijdl
-```
-
-## Why use the prompt manager
-
-Use the extension for saved prompts you reuse often, such as current-state refresh, campaign planning, Codex handoff generation, QA cleanup, and docs health checks.
-
-Keep the HTML guide as the full operating manual. Keep the prompt manager as your quick-access prompt library.
-
-## Suggested placeholder style
-
-Use short, plain-language questions inside the double braces. The placeholder should tell you exactly what to paste without making you remember a variable name.
-
-```text
-{{What is the project name?}}
-{{What is the local repo path?}}
-{{What is the target branch?}}
-{{Paste the active campaign doc, or write "none"}}
-{{Which work type do you want to do? (Campaign, Single slice, or Patch)}}
-{{What slice or patch should Codex implement?}}
-{{Paste the Codex final report}}
-{{Describe the preview or local test result}}
-{{Paste your rough QA notes}}
-{{List the issues this patch should fix}}
-{{What validation should Codex run or report?}}
-{{What do you want ChatGPT to help with?}}
-```
-
-## How to save prompts
-
-1. Copy a prompt from the HTML guide.
-2. Save it in Awesome Prompts.
-3. Keep the `{{Plain-language prompt question}}` placeholders intact.
-4. Group prompts by workflow stage.
-5. When using a prompt, fill only the variables needed for that situation.
-6. Do not add broad app context if the ChatGPT Project Instructions and repo docs already contain it.
-
-## Recommended prompt groups
-
-Organize saved prompts into these groups:
-
-- Project setup
-- Current-state refresh
-- Campaign planning
-- Codex handoff generation
-- QA review
-- Patch handoff
-- Docs health check
-
-## Rule
-
-A prompt manager should reduce typing, not replace source-of-truth docs. Keep app-specific truth in the repo docs and ChatGPT Project Instructions.
-
-# Appendix I - Minimal Codex handoff shape
-
-This shape is for a normal Codex handoff when Codex is already configured for the project repo and environment.
-
-Do **not** add a standard project/repository/header block by default. Add branch, repo, or environment details only when the task depends on them or they are not obvious.
+Use this as the default structure for normal campaign slices, standalone slices, and patches. Add repo, branch, environment, or worktree details only when the task depends on them or when they are not already configured in Codex.
 
 ```md
 Goal:
@@ -1277,42 +793,258 @@ Read first:
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
-- active campaign doc, if applicable: {{What is the active campaign doc path, or write "not applicable"?}}
+- {{Active campaign doc, if applicable}}
 
 Readiness gate:
-Before coding, confirm the source-of-truth docs from the target branch agree on the active task. Stop and report any conflict.
-
-Context:
-{{Add only context Codex needs beyond the repo docs, or write "none"}}
+Before coding, confirm the docs, target branch, and requested scope agree. If they conflict, stop and report the conflict.
 
 Scope:
-{{What is in scope for this handoff?}}
+- {{What is in scope?}}
 
 Non-goals:
-- {{What is intentionally out of scope?}}
+- {{What should Codex avoid?}}
 
 Acceptance criteria:
-- {{What must be true for this to be accepted?}}
+- {{What must be true when the work is complete?}}
 
 Validation:
-- Run relevant checks.
-- Report command results.
-- If a check cannot run, explain why.
+- {{What commands, tests, preview checks, or manual checks should be run?}}
 
-Docs and state:
-- Update docs/current-task.md after completion.
-- Update campaign/architecture/roadmap docs only if needed.
-- Include a documentation delta in the final report.
+Documentation delta:
+Update docs/current-task.md and any campaign, architecture, or roadmap docs affected by the work.
 
 Stop conditions:
-- {{When should Codex stop and report instead of continuing?}}
+Stop and report before making unrelated architecture, schema, auth, deployment, or scope changes.
 
 Final report:
-- Branch
-- Commit
-- Files changed
-- Validation results
-- Documentation delta
-- Manual QA recommendation
-- Follow-up risks
+- branch
+- commit
+- files changed
+- validation results
+- documentation delta
+- manual QA recommendations
+- known risks or follow-ups
 ```
+
+## Standard repo docs
+
+The workflow uses a small source-of-truth doc set. Keep these docs concise and current rather than historical.
+
+- `AGENTS.md` defines coding-agent rules, repo conventions, validation expectations, and documentation update expectations. Update it when agent behavior or repo conventions change.
+- `docs/product.md` defines the product goal, target user, MVP, non-goals, and product decisions. Update it when product direction changes.
+- `docs/architecture.md` defines the technical approach, important routes/services/data flows, deployment assumptions, and constraints. Update it when architecture changes.
+- `docs/roadmap.md` defines milestones, sequencing, campaign backlog, and deferred work. Update it when scope or order changes.
+- `docs/current-task.md` defines current status and the next action. Update it after every implementation.
+- `docs/campaigns/*.md` tracks active multi-slice efforts. Update the active campaign doc when slice status, acceptance criteria, or follow-up backlog changes.
+
+## Optional Codex worktrees
+
+Use worktrees only when they reduce friction. They are useful for isolated branches, parallel slices, and safer experimentation. They are unnecessary for tiny projects or single-threaded work where a normal branch is simpler.
+
+Good setup scripts should:
+
+- run from the repo root
+- show tool versions
+- fetch and prune Git refs
+- stop if the worktree appears stale or detached from known branch tips
+- copy local-only environment files only from a user-controlled path
+- validate required environment keys without printing secret values
+- install dependencies using the project's package manager
+- fail loudly instead of continuing with a partial environment
+
+Good cleanup scripts should:
+
+- remove only disposable generated folders
+- never delete source files, docs, migrations, config, or local secrets
+- be safe to run more than once
+
+Generic cleanup template:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+
+Write-Host 'Running Codex cleanup script from:' (Get-Location)
+
+$pathsToRemove = @(
+  '.next',
+  'node_modules',
+  'coverage',
+  'playwright-report',
+  'test-results',
+  '.vercel',
+  '.turbo'
+)
+
+foreach ($path in $pathsToRemove) {
+  if (Test-Path $path) {
+    Write-Host 'Removing disposable path:' $path
+    Remove-Item -Recurse -Force $path -ErrorAction SilentlyContinue
+  } else {
+    Write-Host 'Not present, skipping:' $path
+  }
+}
+
+Write-Host 'Codex cleanup complete.'
+```
+
+Generic setup template:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+
+# App-specific settings
+$SourceEnvPath = '{{Optional path to source .env.local, or leave blank}}'
+$RequiredEnvKeys = @(
+  '{{OPTIONAL_REQUIRED_ENV_KEY}}'
+)
+$RequiredRepoFiles = @(
+  'package.json'
+)
+$InstallCommand = 'npm install'
+
+Write-Host 'Codex Worktree Setup'
+Write-Host 'Working directory:' (Get-Location)
+
+Write-Host 'Tool versions:'
+git --version
+if (Get-Command node -ErrorAction SilentlyContinue) { node -v }
+if (Get-Command npm -ErrorAction SilentlyContinue) { npm -v }
+if (Get-Command gh -ErrorAction SilentlyContinue) { gh --version }
+
+Write-Host 'Fetching latest Git refs...'
+git fetch --all --prune
+if ($LASTEXITCODE -ne 0) {
+  throw 'Git fetch failed. Cannot verify worktree freshness.'
+}
+
+$head = (git rev-parse HEAD).Trim()
+$matchingRefs = @(
+  git for-each-ref refs/heads refs/remotes --format='%(refname:short) %(objectname)' |
+    Where-Object { -not $_.StartsWith('origin/HEAD ') } |
+    ForEach-Object {
+      $parts = $_ -split ' '
+      if ($parts.Length -ge 2 -and $parts[1] -eq $head) { $parts[0] }
+    }
+)
+
+if ($matchingRefs.Count -eq 0) {
+  git log --oneline --decorate -5
+  throw 'Stopping setup: this worktree HEAD is not the current tip of any known local or remote branch after fetch.'
+}
+
+foreach ($file in $RequiredRepoFiles) {
+  if (-not (Test-Path $file)) {
+    throw 'Required repo file not found: ' + $file
+  }
+}
+
+$targetEnv = Join-Path (Get-Location) '.env.local'
+if (-not (Test-Path $targetEnv) -and -not [string]::IsNullOrWhiteSpace($SourceEnvPath)) {
+  if (-not (Test-Path $SourceEnvPath)) {
+    throw '.env.local missing in worktree and source path does not exist: ' + $SourceEnvPath
+  }
+  Copy-Item $SourceEnvPath $targetEnv -Force -ErrorAction Stop
+  Write-Host '.env.local copied into worktree.'
+}
+
+if ($RequiredEnvKeys.Count -gt 0) {
+  if (-not (Test-Path $targetEnv)) {
+    throw '.env.local is required but missing.'
+  }
+  foreach ($key in $RequiredEnvKeys) {
+    if ([string]::IsNullOrWhiteSpace($key) -or $key.StartsWith('{')) { continue }
+    if (-not (Select-String -Path $targetEnv -Pattern "^$key=" -Quiet)) {
+      throw $key + ' missing from .env.local'
+    }
+  }
+  Write-Host '.env.local validation passed.'
+}
+
+if (-not [string]::IsNullOrWhiteSpace($InstallCommand)) {
+  Write-Host 'Running dependency install command:' $InstallCommand
+  Invoke-Expression $InstallCommand
+  if ($LASTEXITCODE -ne 0) { throw 'Dependency install command failed.' }
+}
+
+Write-Host 'Codex environment setup complete.'
+```
+
+## PowerShell cheat sheet
+
+### Navigation
+
+```powershell
+Set-Location C:\Code\{{Project folder}}
+Get-ChildItem
+git status
+```
+
+### Git status and freshness
+
+```powershell
+git status
+git branch --show-current
+git fetch --all --prune
+git log --oneline --decorate -5
+```
+
+### Commit and push
+
+```powershell
+git status
+git add {{Files to commit}}
+git commit -m '{{Short commit message}}'
+git push origin {{Branch name}}
+```
+
+### Local development
+
+```powershell
+npm install
+npm run dev
+npm test
+npm run build
+```
+
+### Clean generated files
+
+```powershell
+Remove-Item -Recurse -Force .next,node_modules,coverage,playwright-report,test-results -ErrorAction SilentlyContinue
+```
+
+## Key terms
+
+- **Planning LLM:** The conversational model used for strategy, planning, QA triage, and handoff generation.
+- **Coding agent:** The tool that works directly in the repo to edit files, run checks, commit, and push.
+- **Source-of-truth docs:** The repo docs that define current product, architecture, roadmap, and active work.
+- **Campaign:** A large swath of related work broken into reviewable slices.
+- **Slice:** One independently reviewable implementation unit inside a campaign or standalone effort.
+- **Patch:** A narrow correction to a specific branch or issue.
+- **Bootstrap:** The first implementation run that creates the working shell, validation path, and initial deploy/run setup.
+- **Readiness gate:** The pre-coding check that confirms docs, branch, and scope agree before implementation.
+- **Documentation delta:** The final-report section explaining which docs changed and why.
+- **Worktree:** A separate working directory connected to the same Git repo, useful for isolated branches.
+
+## Prompt library and placeholders
+
+A prompt manager is useful when you reuse the same source-of-truth checks, planning prompts, handoff prompts, and QA review prompts across projects. It should reduce typing, not replace repo docs or Project Instructions.
+
+Recommended tool: use the ChatGPT Prompt Manager with **Awesome Prompts** when available.
+
+Suggested placeholder style:
+
+- Use `{{VARIABLE_NAME}}` for short values.
+- Use `{{Plain-language prompt question}}` for user-filled fields.
+- Keep placeholders specific enough that future you knows what to paste.
+
+Recommended prompt groups:
+
+- Project setup prompts
+- Current-state check prompts
+- Campaign and slice planning prompts
+- Codex handoff prompts
+- QA review prompts
+- Patch prompts
+- Docs health check prompts
+
+Rule: save reusable prompts, but keep project-specific truth in repo docs. Do not let a prompt library become a hidden source of truth.
