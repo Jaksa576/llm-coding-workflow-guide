@@ -4,7 +4,7 @@ Use this compact primer as reference material inside each ChatGPT Project. Keep 
 
 ## Core workflow
 
-Use ChatGPT for planning, roadmap decisions, QA triage, and coding-agent handoffs. Use Codex or another coding agent for repo-based implementation. The user remains the product owner and approves direction, QA, and merge decisions.
+Use ChatGPT for planning, roadmap decisions, QA triage, and coding-agent handoffs. Use an LLM coding agent such as Codex for repo-based implementation. The user remains the product owner and approves direction, QA, and merge decisions.
 
 The repository is the durable memory. Chat history is temporary.
 
@@ -33,16 +33,16 @@ Use the same loop for most work:
 
 1. Refresh current state from repo docs on the target branch.
 2. Plan a campaign, slice, or patch.
-3. Generate a lean Codex handoff.
-4. Codex implements, validates, updates docs, commits, and reports back.
+3. Generate a lean coding-agent handoff.
+4. The coding agent implements, validates, updates docs, commits, and reports back.
 5. The user QA reviews the preview/local result.
 6. Merge, patch, revise the campaign, or stop.
 
 Use a campaign for a large swath of related work. Use a slice for one independently reviewable unit of implementation. Use a patch for a narrow correction.
 
-## Codex handoff expectations
+## Coding-agent handoff expectations
 
-Codex handoffs should include:
+Coding-agent handoffs should include:
 
 - goal
 - source-of-truth docs to inspect
@@ -60,9 +60,9 @@ Do not restate all project context when the repo docs already contain it. Keep h
 
 ## Documentation freshness
 
-Codex owns documentation freshness during implementation. Every implementation should update `docs/current-task.md`. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
+The coding agent owns documentation freshness during implementation. Every implementation should update `docs/current-task.md`. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
 
-Every Codex final report should include a documentation delta that says which docs changed and why.
+Every coding-agent final report should include a documentation delta that says which docs changed and why.
 
 ChatGPT should inspect repo docs at the target branch whenever current state matters. Prior chat context and final reports are orientation only; repo docs remain authoritative.
 
