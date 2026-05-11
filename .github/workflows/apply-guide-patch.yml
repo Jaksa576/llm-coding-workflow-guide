@@ -1,6 +1,10 @@
 name: Apply guide patch
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - tools/apply_approved_guide_patch.py
   workflow_dispatch:
 
 permissions:
@@ -9,6 +13,7 @@ permissions:
 jobs:
   apply-guide-patch:
     runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -38,3 +43,4 @@ jobs:
             llm-workflow-primer.md
             llm_coding_workflow_guide.html
             tools/apply_approved_guide_patch.py
+            .github/workflows/apply-guide-patch.yml
