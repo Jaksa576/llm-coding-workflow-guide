@@ -13,7 +13,7 @@ TITLE = "LLM Coding Workflow Guide"
 GENERATED_NOTE = "This HTML guide is generated from the Markdown source by GitHub Actions."
 
 GROUPS = [
-    ("Start here", ["LLM Coding Workflow Guide", "Purpose", "Why this workflow works", "Quick start"], True),
+    ("Start here", ["LLM Coding Workflow Guide", "Design assumption", "Purpose", "Why this workflow works", "Quick start"], True),
     (
         "One-time setup",
         [
@@ -38,8 +38,8 @@ GROUPS = [
             "Main implementation loop",
             "Loop Step A - Ground a new ChatGPT chat in the repo",
             "Loop Step B - Plan the next work item",
-            "Loop Step C - Generate the next Codex handoff",
-            "Loop Step D - Let Codex implement",
+            "Loop Step C - Generate the next LLM agent handoff",
+            "Loop Step D - Let LLM agent implement",
             "Loop Step E - QA and decide merge or patch",
             "Loop Step F - Patch when needed",
             "Loop Step G - Close the campaign or phase",
@@ -54,7 +54,7 @@ GROUPS = [
             "Documentation delta",
             "Docs health check",
             "Current-state check prompt",
-            "Minimal Codex handoff shape",
+            "Minimal LLM agent handoff shape",
             "Standard repo docs",
             "Optional Codex worktrees",
             "PowerShell cheat sheet",
