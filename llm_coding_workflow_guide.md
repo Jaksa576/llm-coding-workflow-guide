@@ -121,7 +121,7 @@ Confirm GitHub source-of-truth access for this project.
 
 
 Target branch for source-of-truth checks:
-{{What branch should ChatGPT inspect?}}
+{{target branch:}}
 
 Please verify whether you can inspect these files from the configured GitHub repo at the target branch:
 - AGENTS.md
@@ -160,23 +160,22 @@ Paste this into the ChatGPT Project. Fill in the double-brace prompts with your 
 Help me define a new software project for an LLM-assisted coding workflow.
 
 Project idea:
-{{Describe the project idea in plain language}}
+{{project idea in plain language}}
 
 Why I want it:
-{{Why do you want to build this?}}
+{{why  you want to build this}}
 
 Primary user:
-{{Who is the primary user?}}
+{{who is the primary user}}
 
 First useful version must do:
-{{What must the first useful version do?}}
+{{what must the first useful version do}}
 
 Known constraints:
-{{List important constraints, assumptions, or preferences, or write "none"}}
-
+{{important constraints, assumptions, or preferences, or write "none"}}
 
 Local repo path:
-{{What is the local repo path?}}
+{{local repo path}}
 
 Default environment:
 Windows-native workflow with PowerShell. Do not assume WSL.
@@ -203,17 +202,13 @@ The generated instructions should be short and app-specific. They should referen
 Create concise ChatGPT Project Instructions for this software project.
 
 Project name:
-{{What is the project name?}}
-
+{{project name}}
 
 Local repo path:
-{{What is the local repo path?}}
+{{local repo path (e.g. C:\Code\Project\)}}
 
-Project type:
-{{What type of project is this?}}
-
-Approved product direction:
-{{Paste the approved project summary}}
+Approved product brief:
+{{approved project summary}}
 
 Attached workflow reference:
 The ChatGPT Project will include the compact LLM workflow primer as a source file. The Project Instructions should reference the primer for generic workflow rules instead of duplicating it.
@@ -252,20 +247,19 @@ Generate the docs that both ChatGPT and Codex will use as source of truth. These
 Create the initial source-of-truth repo docs for this project.
 
 Project name:
-{{What is the project name?}}
-
+{{project name}}
 
 Local repo path:
-{{What is the local repo path?}}
+{{local repo path (e.g. C:\Code\Project\)}}
 
 Approved product brief:
-{{Paste the approved product brief}}
+{{approved project summary}}
 
 Approved MVP:
-{{Paste the approved MVP}}
+{{approved MVP outline}}
 
 Approved technical approach:
-{{Paste the approved technical approach}}
+{{approved technical approach}}
 
 Environment assumptions:
 - Windows-native workflow
@@ -325,16 +319,10 @@ Before creating the handoff, inspect repo docs at the target branch through the 
 Create a lean Codex-ready bootstrap handoff.
 
 Project name:
-{{What is the project name?}}
+{{project name}}
 
 Target branch:
 main
-
-Project type:
-{{What type of project is this?}}
-
-Approved technical approach:
-{{Paste the approved technical approach}}
 
 Source-of-truth docs now in repo:
 - AGENTS.md
@@ -370,12 +358,10 @@ Do not include command-by-command worktree setup unless it is required for this 
 Review this completed bootstrap and help me decide the next step.
 
 Branch:
-{{What branch did Codex use?}}
+{{target branch}}
 
-Codex final report:
-
-Preview, deploy, or local run result:
-{{Describe the preview, deploy, or local run result}}
+LLM agent final report:
+{{LLM agent final report}}
 
 Manual observations:
 {{Add any manual observations, or write "none"}}
@@ -403,7 +389,7 @@ Use this at the start of a new ChatGPT chat, after campaign closeout, or wheneve
 I am starting a new ChatGPT chat for an existing project.
 
 Target branch:
-{{What is the target branch?}}
+{{target branch}}
 
 Please re-establish context by inspecting repo docs at the target branch:
 - AGENTS.md
@@ -434,17 +420,17 @@ Use this for a campaign, a standalone slice, or a patch. Campaign planning is pa
 ```md
 Before planning, do a fresh source-of-truth check using repo docs at the target branch.
 
-Work mode:
-{{Which work type do you want to do? (Campaign, Single slice, or Patch)}}
-
 Target branch:
-{{What is the target branch?}}
+{{target branch}}
+
+Work mode:
+{{type of work to plan: Campaign, Single slice, or Patch}}
 
 Current objective:
-{{What do you want to accomplish?}}
+{{what you want to accomplish}}
 
 Additional context:
-{{Anything important that is not already in repo docs, or write "none"}}
+{{anything important that  not already in repo docs, or write "none"}}
 
 Please inspect the configured GitHub repo at the target branch, or ask me for only the smallest missing file if connector access is unavailable:
 - AGENTS.md
@@ -481,27 +467,24 @@ If Work mode is PATCH, produce a narrow patch plan with:
 The plan should support large swaths when appropriate, but keep each implementation step independently reviewable.
 ```
 
-## Loop Step C - Generate the next Codex handoff
+## Loop Step C - Generate the next LLM agent handoff
 
 Use this for a campaign slice, standalone slice, or patch. The prompt intentionally does not ask for the repo URL because the ChatGPT Project Instructions should already contain it. Branch context still matters.
 
 ```md
 Before creating the handoff, do a fresh source-of-truth check using repo docs at the target branch.
 
-Work type:
-{{What type of handoff is this? (Campaign slice, Standalone slice, or Patch)}}
-
 Target branch:
-{{What is the target branch?}}
+{{target branch}}
 
-Active campaign doc, if applicable:
-{{Paste the active campaign doc, or write "none"}}
+Work type:
+{{type of handoff: Campaign slice, Standalone slice, or Patch}}
 
 Work item to implement:
-{{What slice or patch should Codex implement?}}
+{{active campaign doc, slice or patch name}}
 
 Task context:
-{{Add only context Codex needs beyond the repo docs, or write "none"}}
+{{any context LLM agent needs beyond the repo docs, or write "none"}}
 
 Please inspect the configured GitHub repo at the target branch, or ask me for only the smallest missing file if connector access is unavailable:
 - AGENTS.md
@@ -511,7 +494,7 @@ Please inspect the configured GitHub repo at the target branch, or ask me for on
 - docs/current-task.md
 - the active campaign doc if applicable
 
-Then create a lean Codex-ready handoff containing only what Codex needs for this task.
+Then create a lean LLM agent-ready handoff containing only what LLM agent needs for this task.
 
 A normal handoff should include:
 - goal
@@ -535,17 +518,17 @@ Rules:
 - Keep the handoff copy-paste ready.
 ```
 
-## Loop Step D - Let Codex implement
+## Loop Step D - Let LLM agent implement
 
-In Codex:
+In LLM agent:
 
-1. Start a fresh Codex thread/worktree for each campaign slice or standalone implementation branch.
+1. Start a fresh LLM agent thread/worktree for each campaign slice or standalone implementation branch.
 2. Reuse the same branch/thread only for focused patch corrections to the same implementation.
 3. Paste the handoff.
-4. Let Codex inspect docs, implement, validate, update docs, commit, and push.
-5. Copy Codex's final report back into ChatGPT.
+4. Let LLM agent inspect docs, implement, validate, update docs, commit, and push.
+5. Copy LLM agent's final report back into ChatGPT.
 
-A good Codex final report must include:
+A good LLM agent final report must include:
 
 - branch
 - commit
@@ -562,18 +545,16 @@ A good Codex final report must include:
 Help me review this completed implementation.
 
 Branch:
-{{What branch did Codex use?}}
+{{target branch:}}
 
 Work type:
-{{What type of work was completed? (Campaign slice, Standalone slice, or Patch)}}
+{{type of work to be completed: Campaign slice, Standalone slice, or Patch}}
 
-Codex final report:
-
-Preview/local test context:
-{{Describe the preview or local test result}}
+LLM agent final report:
+{{LLM implementation notes:}}
 
 My rough QA notes:
-{{Paste your rough QA notes}}
+{{rough QA notes:}}
 
 Please do the following:
 1. assess whether the work appears aligned with the campaign, roadmap, or slice plan
@@ -582,7 +563,7 @@ Please do the following:
 4. identify what should change before merge, if anything
 5. tell me exactly what to manually QA
 6. recommend one of: merge, narrow patch, revise plan/campaign, or abandon branch
-7. if a patch is needed, create a lean Codex-ready patch handoff
+7. if a patch is needed, create a lean LLM agent-ready patch handoff
 
 ```
 
@@ -590,16 +571,16 @@ Please do the following:
 ## Loop Step F - Patch when needed
 
 ```md
-Create a narrow Codex-ready patch handoff.
+Create a narrow LLM agent-ready patch handoff.
 
 Branch to patch:
-{{What branch should Codex patch?}}
+{{target branch:}}
 
 Issues to fix:
-{{List the issues this patch should fix}}
+{{list of issues this patch should fix:}}
 
 Additional context:
-{{Anything Codex needs that is not already in repo docs, or write "none"}}
+{{anything LLM agent needs that is not already in repo docs, or write "none":}}
 
 Please inspect repo docs at the target branch if current state matters. Then generate a concise patch handoff with:
 1. goal
@@ -638,13 +619,13 @@ When a campaign or major phase is complete, close it out, update docs, and usual
 Help me close out this work item and prepare the project for the next stage.
 
 Target branch:
-{{What is the target branch?}}
+{{target branch:}}
 
 Work item to close:
-{{Which campaign, slice, patch, or phase is being closed out?}}
+{{name of campaign, slice, patch, or phase is being closed out:}}
 
 Known remaining issues:
-{{List anything I already know, or write "none"}}
+{{any outstanding inssues, or write "none":}}
 
 Please do a fresh source-of-truth check using repo docs at the target branch. If connector access is unavailable, ask me for only the smallest missing file from:
 - AGENTS.md
@@ -661,7 +642,7 @@ Then recommend:
 4. what docs/current-task.md should say next
 5. whether the next step should be a patch, new campaign, standalone slice, production hardening, or pause
 6. whether I should start a new ChatGPT chat for the next phase
-7. a Codex-ready docs-update handoff if needed
+7. a LLM agent-ready docs-update handoff if needed
 ```
 
 # Reference material
@@ -672,7 +653,7 @@ Use this section when the main workflow points you to supporting material. It is
 
 Use `docs/current-task.md` as the active work pointer for current status and next action.
 
-Codex should update `docs/current-task.md` after every implementation. Update campaign docs when slice status changes. Update `docs/architecture.md` or `docs/roadmap.md` only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
+LLM agent should update `docs/current-task.md` after every implementation. Update campaign docs when slice status changes. Update `docs/architecture.md` or `docs/roadmap.md` only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
 
 ChatGPT should inspect repo docs at the target branch whenever current state matters. Chat memory and prior final reports are orientation only; repo docs are authoritative.
 
@@ -680,15 +661,15 @@ Golden rules:
 
 1. The repo is durable memory. Chats are temporary.
 2. Current-state checks beat chat memory.
-3. Keep Codex handoffs lean and task-specific.
+3. Keep LLM agent handoffs lean and task-specific.
 4. Prefer reviewable slices over vague large changes.
-5. Codex updates docs after implementation.
+5. LLM agent updates docs after implementation.
 6. The user approves product direction, QA judgment, and merge decisions.
 7. Remove stale detail from the hot path instead of letting it bury the next action.
 
 ## Documentation delta
 
-Every Codex final report should include a documentation delta.
+Every LLM agent final report should include a documentation delta.
 
 ```md
 Documentation delta:
@@ -703,13 +684,13 @@ Documentation delta:
 Run a docs health check after a campaign, before a major campaign, or whenever docs seem stale. Do not make this a weekly chore unless the project is moving quickly.
 
 ```md
-Create a Codex-ready docs health check handoff.
+Create a LLM agent-ready docs health check handoff.
 
 Target branch:
-{{What is the target branch?}}
+{{target branch:}}
 
 Reason for audit:
-{{Why are you running this docs health check?}}
+{{reason for running this docs health check:}}
 
 Goal:
 Audit and update project documentation so the hot-path docs accurately reflect the current project state.
@@ -754,11 +735,11 @@ Use this whenever ChatGPT might be stale and the task depends on current repo st
 ```md
 Before answering, do a fresh source-of-truth check for this project.
 
-Current situation:
-{{Briefly describe why you need a source-of-truth check}}
-
 Target branch:
-{{What is the target branch?}}
+{{target branch:}}
+
+Current situation:
+{{why you need a source-of-truth check:}}
 
 Please inspect repo docs at the target branch for the latest versions of:
 - AGENTS.md
@@ -779,13 +760,13 @@ After the source-of-truth check, answer my request:
 {{What do you want ChatGPT to answer or help with?}}
 ```
 
-## Minimal Codex handoff shape
+## Minimal LLM agent handoff shape
 
-Use this as the default structure for normal campaign slices, standalone slices, and patches. Add repo, branch, environment, or worktree details only when the task depends on them or when they are not already configured in Codex.
+Use this as the default structure for normal campaign slices, standalone slices, and patches. Add repo, branch, environment, or worktree details only when the task depends on them or when they are not already configured in LLM agent.
 
 ```md
 Goal:
-{{What should Codex accomplish?}}
+{{what the LLM agent should accomplish:}}
 
 Read first:
 - AGENTS.md
@@ -799,16 +780,16 @@ Readiness gate:
 Before coding, confirm the docs, target branch, and requested scope agree. If they conflict, stop and report the conflict.
 
 Scope:
-- {{What is in scope?}}
+- {{scope:}}
 
 Non-goals:
-- {{What should Codex avoid?}}
+- {{anything the LLm agent should avoid:}}
 
 Acceptance criteria:
-- {{What must be true when the work is complete?}}
+- {{what must be true when the work is complete:}}
 
 Validation:
-- {{What commands, tests, preview checks, or manual checks should be run?}}
+- {{what commands, tests, preview checks, or manual checks should be run:}}
 
 Documentation delta:
 Update docs/current-task.md and any campaign, architecture, or roadmap docs affected by the work.
