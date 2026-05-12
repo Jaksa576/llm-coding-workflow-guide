@@ -1,8 +1,23 @@
 # LLM Coding Workflow Guide
 
-A step-by-step operating guide for using a planning LLM and a coding agent to create, deploy, and maintain software projects.
+A step-by-step operating guide for using ChatGPT as a planning/control partner and Codex as a coding agent to create, deploy, and maintain software projects.
 
-Current default setup: **ChatGPT for planning** and **Codex for implementation**. The workflow is not limited to web apps. It can support personal apps, scripts, utilities, dashboards, browser games, and other software projects.
+Current default setup: **ChatGPT for planning** and **Codex for implementation**. This workflow is intentionally optimized for a two-context model: use ChatGPT for product thinking, planning, documentation, QA decisions, and lean handoff generation; use Codex for repo-grounded implementation, validation, documentation updates, commits, and final reports.
+
+The split matters for two reasons. First, planning and implementation may have different token, cost, latency, or workflow constraints, so the guide keeps coding-agent handoffs lean instead of pushing all planning context into every implementation run. Second, even when the economics are similar, separating planning context from execution context keeps decisions cleaner, makes work easier to resume, and prevents the coding agent from being overloaded with stale or irrelevant discussion.
+
+If your planning LLM and coding agent have similar costs and context behavior, you can streamline some planning steps for small tasks. The durable parts of the workflow are still useful: source-of-truth repo docs, explicit acceptance criteria, reviewable slices, documentation deltas, QA decisions, and final implementation reports.
+
+## Design assumption
+
+This guide is built around a planning LLM plus coding-agent workflow, with ChatGPT and Codex as the default tools. It assumes planning context and execution context should usually stay separate.
+
+That separation is useful for two reasons:
+
+- **Token and workflow efficiency:** keep exploratory planning, product decisions, and QA reasoning in ChatGPT; send Codex only the task-specific context it needs to implement.
+- **Context hygiene:** keep strategy, roadmap, and decision-making separate from repo execution so Codex can work from concise docs, clear scope, and current source-of-truth files.
+
+If your tools make planning and execution equally cheap and equally context-rich, you can collapse some intermediate planning steps for small tasks. Do not collapse the source-of-truth docs, acceptance criteria, validation expectations, documentation delta, or final report loop unless the project is truly disposable.
 
 ## Purpose
 
@@ -11,8 +26,8 @@ This document helps you create a consistent autonomous-coding infrastructure wit
 The workflow assumes:
 
 - You own product direction and final decisions.
-- ChatGPT turns ideas into product plans, repo docs, campaigns, QA decisions, and Codex handoffs.
-- Codex implements against the local repo, validates work, updates docs, commits, and reports back.
+- ChatGPT project turns ideas into product plans, repo docs, campaigns, QA decisions, and Codex handoffs.
+- Codex LLM agent implements against the local repo, validates work, updates docs, commits, and reports back.
 - GitHub and repo docs are the durable source of truth.
 - Windows + PowerShell is the default local environment unless explicitly changed.
 
@@ -30,6 +45,8 @@ It works because responsibilities are separated:
 - The GitHub repo and project docs remain the durable source of truth.
 
 This is strongest for hobbyists and solo builders who want to build real software with heavy LLM assistance while staying in control. It is less useful for tiny throwaway scripts, pure no-code app generation, or high-stakes production systems that need professional engineering review.
+
+It is also a context-routing strategy: ChatGPT carries the broader planning conversation, while Codex receives only the current repo-grounded task, acceptance criteria, validation expectations, and documentation delta.
 
 The main tradeoff is setup overhead. The workflow adds structure so later implementation becomes easier to resume, safer to automate, and less dependent on chat memory.
 
