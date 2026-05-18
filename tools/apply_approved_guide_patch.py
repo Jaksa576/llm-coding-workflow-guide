@@ -85,8 +85,7 @@ def insert_after(text: str, anchor: str, addition: str, label: str) -> str:
     index = text.find(anchor)
     if index < 0:
         raise SystemExit(f'Missing anchor for {label}: {anchor}')
-    insert_at = index + len(anchor)
-    return text[:insert_at] + addition + text[insert_at:]
+    return text[: index + len(anchor)] + addition + text[index + len(anchor):]
 
 
 def replace_once(text: str, old: str, new: str, label: str) -> str:
@@ -108,20 +107,16 @@ def patch_guide(text: str) -> str:
     text = insert_after(
         text,
         'Keep repeatable setup and cleanup logic in repo helper scripts or Codex project settings, not in every handoff prompt. A handoff should mention worktree setup only when the task depends on it.',
-        '\n\nIf a worktree uses a local branch, the work is not complete until the branch is committed, pushed to the remote repo, and verified as pushed. Prefer a repo-owned branch verification script, such as `._scripts_verify-branch-pushed.ps1`, when the project provides one.',
+        '\n\nIf a worktree uses a local branch, the work is not complete until the branch is committed, pushed to the remote repo, and verified as pushed. Prefer a repo-owned branch verification script, such as `.\\scripts\\verify-branch-pushed.ps1`, when the project provides one.',
         'Stage 2A branch-push guidance',
     )
-
-    text = text.replace('`._scripts_verify-branch-pushed.ps1`', '`\\.\\scripts\\verify-branch-pushed.ps1`')
 
     text = insert_after(
         text,
         'Codex handoff rule:\nDo not require a standard project/repository/header block by default. Codex should already have the project, repo, environment, and worktree settings configured. Include target branch, repo, or environment details only when the task needs them or when they are not obvious.',
-        '\n\nIf the repo provides standard commands in `AGENTS.md`, package scripts, or `scripts/`, generated handoffs should reference those helpers instead of restating common setup and validation steps. Prefer repo-owned validation and branch-push verification commands, such as `npm run check`, `._scripts_validate.ps1`, or `._scripts_verify-branch-pushed.ps1`, when present.',
+        '\n\nIf the repo provides standard commands in `AGENTS.md`, package scripts, or `scripts/`, generated handoffs should reference those helpers instead of restating common setup and validation steps. Prefer repo-owned validation and branch-push verification commands, such as `npm run check`, `.\\scripts\\validate.ps1`, or `.\\scripts\\verify-branch-pushed.ps1`, when present.',
         'Stage 4 handoff optimization guidance',
     )
-    text = text.replace('`._scripts_validate.ps1`', '`\\.\\scripts\\validate.ps1`')
-    text = text.replace('`._scripts_verify-branch-pushed.ps1`', '`\\.\\scripts\\verify-branch-pushed.ps1`')
 
     text = insert_after(
         text,
@@ -153,7 +148,7 @@ def patch_guide(text: str) -> str:
 
     text = insert_after(
         text,
-        '- branch\n- commit',
+        'A good LLM agent final report must include:\n\n- branch\n- commit',
         '\n- pushed remote branch, when work was done on a branch or worktree\n- branch-push verification result, when the repo provides a verification script',
         'Loop Step D final report fields',
     )
@@ -173,9 +168,9 @@ As a project matures, move repeated setup, validation, and branch hygiene into r
 Useful helpers include:
 
 - a single package validation command, such as `npm run check`
-- a setup script, such as `\\.\\scripts\\setup-codex-worktree.ps1`
-- a validation script, such as `\\.\\scripts\\validate.ps1`
-- a branch-push verification script, such as `\\.\\scripts\\verify-branch-pushed.ps1`
+- a setup script, such as `.\\scripts\\setup-codex-worktree.ps1`
+- a validation script, such as `.\\scripts\\validate.ps1`
+- a branch-push verification script, such as `.\\scripts\\verify-branch-pushed.ps1`
 - a small command menu in `AGENTS.md`
 
 Use these helpers to keep handoffs short. The handoff should say what to accomplish, what docs to inspect, and what acceptance criteria matter. The repo should own repeatable command details.
@@ -187,7 +182,7 @@ For worktree-based development, local-only completion is not enough. The LLM age
 '''
     text = insert_after(
         text,
-        '## Documentation delta\n\nEvery LLM agent final report should include a documentation delta.\n\n```md\nDocumentation delta:\n- docs/current-task.md: {{Summarize what changed in docs/current-task.md}}\n- campaign doc, if applicable: {{Summarize what changed, or write \'not applicable\'}}\n- docs/architecture.md: {{Summarize what changed, or write \'not applicable\'}}\n- docs/roadmap.md: {{Summarize what changed, or write \'not applicable\'}}\n```\n\n',
+        "## Documentation delta\n\nEvery LLM agent final report should include a documentation delta.\n\n```md\nDocumentation delta:\n- docs/current-task.md: {{Summarize what changed in docs/current-task.md}}\n- campaign doc, if applicable: {{Summarize what changed, or write 'not applicable'}}\n- docs/architecture.md: {{Summarize what changed, or write 'not applicable'}}\n- docs/roadmap.md: {{Summarize what changed, or write 'not applicable'}}\n```\n\n",
         repo_helpers_section,
         'Token-efficient repo helpers section',
     )
@@ -195,7 +190,7 @@ For worktree-based development, local-only completion is not enough. The LLM age
     text = replace_once(
         text,
         'Validation:\n- {{what commands, tests, preview checks, or manual checks should be run:}}',
-        'Validation:\n- {{what commands, tests, preview checks, or manual checks should be run:}}\n- Prefer the repo\'s standard validation command or script when present, such as `npm run check` or `\\.\\scripts\\validate.ps1`.',
+        "Validation:\n- {{what commands, tests, preview checks, or manual checks should be run:}}\n- Prefer the repo's standard validation command or script when present, such as `npm run check` or `.\\scripts\\validate.ps1`.",
         'Minimal handoff validation guidance',
     )
 
@@ -226,8 +221,8 @@ Good branch-verification scripts should:
 
     text = replace_once(
         text,
-        "git push origin {{Branch name}}",
-        "git push -u origin {{Branch name}}\n# If the repo provides one, then run:\n.\\scripts\\verify-branch-pushed.ps1",
+        'git push origin {{Branch name}}',
+        'git push -u origin {{Branch name}}\n# If the repo provides one, then run:\n.\\scripts\\verify-branch-pushed.ps1',
         'PowerShell push command',
     )
 
