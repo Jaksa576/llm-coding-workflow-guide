@@ -161,11 +161,15 @@ Rules:
 Configure Codex before any Codex handoff is created. Point Codex at the local repo path. Confirm it can see the repo, the branch is correct, Git status is clean or intentionally empty, and worktree/local environment settings are configured.
 
 Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.
+
+As a project matures, move repeated setup, validation, and branch-verification commands into repo-owned scripts or package commands. Handoffs should reference those helpers instead of re-teaching the LLM agent the same command sequence.
 ## Stage 2A - Optional Codex worktrees
 
 Codex worktrees are optional. Use them when you want isolated implementation branches, parallel slices, or safer experimentation without disturbing your main local checkout.
 
 Keep repeatable setup and cleanup logic in repo helper scripts or Codex project settings, not in every handoff prompt. A handoff should mention worktree setup only when the task depends on it.
+
+If a worktree uses a local branch, the work is not complete until the branch is committed, pushed to the remote repo, and verified as pushed. Prefer a repo-owned branch verification script, such as `.\scripts\verify-branch-pushed.ps1`, when the project provides one.
 
 If you use worktrees, see **Optional Codex worktrees** in the reference material for setup and cleanup templates.
 
@@ -253,6 +257,8 @@ The instructions should include only:
 Codex handoff rule:
 Do not require a standard project/repository/header block by default. Codex should already have the project, repo, environment, and worktree settings configured. Include target branch, repo, or environment details only when the task needs them or when they are not obvious.
 
+If the repo provides standard commands in `AGENTS.md`, package scripts, or `scripts/`, generated handoffs should reference those helpers instead of restating common setup and validation steps. Prefer repo-owned validation and branch-push verification commands, such as `npm run check`, `.\scripts\validate.ps1`, or `.\scripts\verify-branch-pushed.ps1`, when present.
+
 Keep the instruction block concise and purposeful. Avoid restating the full workflow primer or duplicating repo docs.
 ```
 
@@ -299,6 +305,8 @@ Requirements:
 - Clearly mark anything that is planned but not implemented yet.
 - Include Windows/PowerShell assumptions where relevant, but do not over-repeat them.
 - Include the expectation that Codex updates docs/current-task.md after every implementation.
+- For projects using worktrees, include that branch work must be pushed to the remote repo before final report.
+- If the repo has standard setup, validation, or branch-verification scripts, document them in `AGENTS.md` instead of repeating those commands in every handoff.
 
 Output each file in a separate fenced markdown block with the file path as the heading.
 ```
@@ -365,6 +373,7 @@ The Codex handoff must include:
 
 Keep the handoff copy-paste ready.
 Do not include command-by-command worktree setup unless it is required for this specific task.
+If the repo docs already define standard commands, the handoff should refer to them instead of listing the whole command sequence. If worktrees are used, require the branch to be pushed before final report.
 ```
 
 
@@ -533,6 +542,9 @@ Rules:
 - Do not restate the entire product or campaign if the repo docs already cover it.
 - Do not include command-by-command setup unless explicitly needed.
 - Keep the handoff copy-paste ready.
+- Prefer repo-owned standard commands from `AGENTS.md`, package scripts, or `scripts/` for setup, validation, and branch verification.
+- If the repo provides a branch-push verification script and the work uses a worktree, include it in validation or final-report expectations.
+- Do not create extra active-context files just to repeat the handoff; the handoff is the active execution packet and repo docs are durable truth.
 ```
 
 ## Loop Step D - Let LLM agent implement
@@ -542,13 +554,15 @@ In LLM agent:
 1. Start a fresh LLM agent thread/worktree for each campaign slice or standalone implementation branch.
 2. Reuse the same branch/thread only for focused patch corrections to the same implementation.
 3. Paste the handoff.
-4. Let LLM agent inspect docs, implement, validate, update docs, commit, and push.
+4. Let LLM agent inspect docs, implement, validate, update docs, commit, push, and verify the branch is pushed when a repo helper exists.
 5. Copy LLM agent's final report back into ChatGPT.
 
 A good LLM agent final report must include:
 
 - branch
 - commit
+- pushed remote branch, when work was done on a branch or worktree
+- branch-push verification result, when the repo provides a verification script
 - files changed
 - validation results
 - documentation delta
@@ -696,6 +710,25 @@ Documentation delta:
 - docs/roadmap.md: {{Summarize what changed, or write 'not applicable'}}
 ```
 
+
+## Token-efficient repo helpers
+
+As a project matures, move repeated setup, validation, and branch hygiene into repo-owned helpers instead of repeating commands in every handoff.
+
+Useful helpers include:
+
+- a single package validation command, such as `npm run check`
+- a setup script, such as `.\scripts\setup-codex-worktree.ps1`
+- a validation script, such as `.\scripts\validate.ps1`
+- a branch-push verification script, such as `.\scripts\verify-branch-pushed.ps1`
+- a small command menu in `AGENTS.md`
+
+Use these helpers to keep handoffs short. The handoff should say what to accomplish, what docs to inspect, and what acceptance criteria matter. The repo should own repeatable command details.
+
+Do not create a separate active-context file just to duplicate the handoff. The handoff is the active execution packet for the current run. Repo docs are the durable source of truth, and `docs/current-task.md` should stay concise enough to point to current status and next action without becoming a long final-report archive.
+
+For worktree-based development, local-only completion is not enough. The LLM agent should commit, push the branch to the remote repo, run the repo's branch verification helper when one exists, and include the pushed branch plus verification result in the final report.
+
 ## Docs health check
 
 Run a docs health check after a campaign, before a major campaign, or whenever docs seem stale. Do not make this a weekly chore unless the project is moving quickly.
@@ -807,6 +840,7 @@ Acceptance criteria:
 
 Validation:
 - {{what commands, tests, preview checks, or manual checks should be run:}}
+- Prefer the repo's standard validation command or script when present, such as `npm run check` or `.\scripts\validate.ps1`.
 
 Documentation delta:
 Update docs/current-task.md and any campaign, architecture, or roadmap docs affected by the work.
@@ -855,6 +889,16 @@ Good cleanup scripts should:
 - remove only disposable generated folders
 - never delete source files, docs, migrations, config, or local secrets
 - be safe to run more than once
+
+
+Good branch-verification scripts should:
+
+- fail on `main` unless explicitly allowed
+- fail when uncommitted changes exist
+- fetch and prune remote refs
+- verify the current branch has an upstream
+- verify local `HEAD` is pushed to the upstream branch
+- fail if the local branch is ahead of the remote branch
 
 Generic cleanup template:
 
@@ -992,7 +1036,9 @@ git log --oneline --decorate -5
 git status
 git add {{Files to commit}}
 git commit -m '{{Short commit message}}'
-git push origin {{Branch name}}
+git push -u origin {{Branch name}}
+# If the repo provides one, then run:
+.\scripts\verify-branch-pushed.ps1
 ```
 
 ### Local development
