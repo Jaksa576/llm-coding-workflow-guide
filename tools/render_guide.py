@@ -52,6 +52,7 @@ GROUPS = [
             "Reference material",
             "Keep repo docs fresh",
             "Documentation delta",
+            "Token-efficient repo helpers",
             "Docs health check",
             "Current-state check prompt",
             "Minimal LLM agent handoff shape",
