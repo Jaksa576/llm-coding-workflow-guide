@@ -23,6 +23,7 @@ GROUPS = [
             "Stage 1B - Configure GitHub source-of-truth access",
             "Stage 2 - Configure Codex before handoffs",
             "Stage 2A - Optional Codex worktrees",
+            "Stage 2B - Switching computers safely",
             "Stage 3 - Define the project",
             "Stage 4 - Generate project-specific ChatGPT instructions",
             "Stage 5 - Generate the core repo docs",
@@ -55,6 +56,7 @@ GROUPS = [
             "Token-efficient repo helpers",
             "Docs health check",
             "Current-state check prompt",
+            "Computer switch check prompt",
             "Minimal LLM agent handoff shape",
             "Standard repo docs",
             "Optional Codex worktrees",
@@ -267,28 +269,41 @@ def parse_markdown(markdown: str) -> tuple[str, list[tuple[int, str, str]]]:
     return add_terms("\n".join(out)), headings
 
 
+def nav_group_for(title: str, seen_reference: bool, explicit_groups: dict[str, str]) -> str:
+    if title in explicit_groups:
+        return explicit_groups[title]
+    if title.startswith("Stage "):
+        return "One-time setup"
+    if title == "Main implementation loop" or title.startswith("Loop Step "):
+        return "Implementation loop"
+    if seen_reference:
+        return "Reference material"
+    return "Start here"
+
+
 def build_nav(headings: list[tuple[int, str, str]]) -> str:
-    by_title = {title: (level, heading_id) for level, title, heading_id in headings}
-    used: set[str] = set()
+    group_order = [(name, is_open) for name, _, is_open in GROUPS]
+    links_by_group: dict[str, list[str]] = {name: [] for name, _, _ in GROUPS}
+    explicit_groups = {title: name for name, titles, _ in GROUPS for title in titles}
+    seen_reference = False
+
+    for level, title, heading_id in headings:
+        if level > 2:
+            continue
+        if title == "Reference material":
+            seen_reference = True
+        group_name = nav_group_for(title, seen_reference, explicit_groups)
+        links_by_group.setdefault(group_name, [])
+        links_by_group[group_name].append(f'<a data-nav data-level="{level}" href="#{heading_id}">{html.escape(title)}</a>')
+
     chunks: list[str] = []
-    for group_name, titles, is_open in GROUPS:
-        group_links: list[str] = []
-        for title in titles:
-            if title in by_title:
-                level, heading_id = by_title[title]
-                used.add(heading_id)
-                group_links.append(f'<a data-nav data-level="{level}" href="#{heading_id}">{html.escape(title)}</a>')
+    for group_name, is_open in group_order:
+        group_links = links_by_group.get(group_name, [])
         if not group_links:
             continue
         open_attr = " open" if is_open else ""
         chunks.append(f'<details class="nav-group" data-nav-group="{html.escape(group_name)}"{open_attr}><summary>{html.escape(group_name)}</summary>')
         chunks.extend(group_links)
-        chunks.append("</details>")
-    rest = [(level, title, heading_id) for level, title, heading_id in headings if heading_id not in used and level <= 2]
-    if rest:
-        chunks.append('<details class="nav-group" data-nav-group="Other sections"><summary>Other sections</summary>')
-        for level, title, heading_id in rest:
-            chunks.append(f'<a data-nav data-level="{level}" href="#{heading_id}">{html.escape(title)}</a>')
         chunks.append("</details>")
     return "\n".join(chunks)
 
