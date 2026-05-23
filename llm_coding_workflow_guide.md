@@ -173,131 +173,6 @@ If a worktree uses a local branch, the work is not complete until the branch is 
 
 If you use worktrees, see **Optional Codex worktrees** in the reference material for setup and cleanup templates.
 
-## Stage 2B - Switching computers safely
-
-Switching computers should be a GitHub checkpoint and resume workflow, not a local-folder sync workflow.
-
-Default to a **clean project switch** whenever possible: finish or pause at a safe checkpoint, commit real work, push the branch, verify the branch is available on GitHub, and make sure the next action is clear before leaving the current computer.
-
-Use three switch types:
-
-- **Clean project switch:** the normal path. Use this when the current slice, patch, or checkpoint is committed and pushed.
-- **Mid-task switch:** use only when you must move computers before work is complete. Commit only meaningful checkpoint work, and provide a short passoff in ChatGPT, the LLM agent final report, or another temporary note.
-- **Remote or cloud coding-agent switch:** optional. Use this only when work is already running in a supported remote or cloud coding-agent environment.
-
-Before leaving the current computer:
-
-```powershell
-git status
-git branch --show-current
-git fetch --all --prune
-git status
-git log --oneline --decorate -5
-```
-
-### Resume on another computer
-
-```powershell
-Set-Location C:\Code\{{Project folder}}
-git fetch --all --prune
-git checkout {{Branch name}}
-git pull --ff-only
-npm install
-npm run build
-git status
-```
-
-Do not copy `node_modules`, build output, coverage folders, or local runtime logs between computers. Restore only required local-only secrets or machine settings, and never commit them.
-
-
-If there are meaningful changes that should travel to the next computer:
-
-```powershell
-git add {{Files to commit}}
-git commit -m '{{Short checkpoint message}}'
-git push -u origin {{Branch name}}
-# If the repo provides one, then run:
-.\scripts\verify-branch-pushed.ps1
-```
-
-Do not create a new repo file just because you are switching computers. If the project is mid-campaign and the next action would otherwise be unclear, provide a short passoff in ChatGPT or include it with the LLM agent final report. Update `docs/current-task.md` only when the actual project state or next action changed.
-
-On the new computer, rebuild local state from GitHub:
-
-```powershell
-Set-Location C:\Code\{{Project folder}}
-git fetch --all --prune
-git checkout {{Branch name}}
-git pull --ff-only
-npm install
-npm run build
-git status
-```
-
-If the repo does not exist on the new computer yet:
-
-```powershell
-Set-Location C:\Code
-git clone {{Paste the GitHub repo URL}}
-Set-Location C:\Code\{{Project folder}}
-git checkout {{Branch name}}
-npm install
-npm run build
-git status
-```
-
-Restore only local-only secrets and machine setup that the project actually needs. Do not copy generated folders or runtime files just because they exist locally. Recreate generated state from the repo.
-
-Usually recreate or ignore:
-
-- `node_modules/`
-- `dist/`, `.next/`, coverage folders, and other build output
-- local dev server logs or temporary runtime files
-
-Restore manually and securely only when required:
-
-- `.env.local`
-- local API keys or credentials
-- local database files that are intentionally excluded from Git
-- editor, desktop app, or machine-specific settings
-
-Secrets and machine-specific setup do not travel through Git. Use a password manager, secure note, platform dashboard, or another user-controlled source. Never commit secrets.
-
-If this is the first time using the project with Codex or another coding agent on the new computer, configure the local coding-agent project before giving it implementation work:
-
-1. Open the coding agent on the new computer.
-2. Add or open the local repo folder, such as `C:\Code\{{Project folder}}`.
-3. Confirm the agent can see the repo files.
-4. Confirm the active branch is the branch you pulled from GitHub.
-5. Confirm the working tree is clean or intentionally dirty.
-6. Confirm the terminal environment is Windows-native PowerShell unless the project intentionally uses something else.
-7. Confirm the repo's standard commands run, such as `npm install`, `npm run build`, and `npm run dev` or the commands listed in `AGENTS.md`.
-8. Start a fresh coding-agent thread for continued implementation unless you are intentionally using a supported remote or cloud coding-agent task.
-
-Use this readiness prompt before asking the coding agent to implement on the new computer:
-
-```md
-This project has just been resumed on a new computer.
-
-Please inspect:
-- AGENTS.md
-- docs/current-task.md
-- docs/product.md
-- docs/architecture.md
-- docs/roadmap.md
-- active docs/campaigns/*.md if relevant
-
-Then confirm:
-1. current branch
-2. git status
-3. repo docs are readable
-4. standard local commands from AGENTS.md or package scripts
-5. whether anything appears missing from the local setup
-
-Do not change files yet. Stop after reporting readiness.
-```
-
-
 ## Stage 3 - Define the project
 
 Paste this into the ChatGPT Project. Fill in the double-brace prompts with your project idea, constraints, and local path.
@@ -853,6 +728,117 @@ Use these helpers to keep handoffs short. The handoff should say what to accompl
 Do not create a separate active-context file just to duplicate the handoff. The handoff is the active execution packet for the current run. Repo docs are the durable source of truth, and `docs/current-task.md` should stay concise enough to point to current status and next action without becoming a long final-report archive.
 
 For worktree-based development, local-only completion is not enough. The LLM agent should commit, push the branch to the remote repo, run the repo's branch verification helper when one exists, and include the pushed branch plus verification result in the final report.
+
+## Switching computers safely
+
+Switching computers is a reference workflow for moving active work between machines. It is not part of one-time project setup.
+
+Use GitHub as the sync layer. Do not try to sync local coding-agent state, generated folders, local worktrees, or runtime files between computers.
+
+Default to a **clean project switch** whenever possible: finish or pause at a safe checkpoint, commit real work, push the branch, verify the branch is available on GitHub, and make sure the next action is clear before leaving the current computer.
+
+Use three switch types:
+
+- **Clean project switch:** the normal path. Use this when the current slice, patch, or checkpoint is committed and pushed.
+- **Mid-task switch:** use only when you must move computers before work is complete. Commit only meaningful checkpoint work, and provide a short passoff in ChatGPT, the LLM agent final report, or another temporary note.
+- **Remote or cloud coding-agent switch:** optional. Use this only when work is already running in a supported remote or cloud coding-agent environment.
+
+Before leaving the current computer:
+
+```powershell
+git status
+git branch --show-current
+git fetch --all --prune
+git status
+git log --oneline --decorate -5
+```
+
+If there are meaningful changes that should travel to the next computer:
+
+```powershell
+git add {{Files to commit}}
+git commit -m '{{Short checkpoint message}}'
+git push -u origin {{Branch name}}
+# If the repo provides one, then run:
+.\scripts\verify-branch-pushed.ps1
+```
+
+Do not create a new repo file just because you are switching computers. If the project is mid-campaign and the next action would otherwise be unclear, provide a short passoff in ChatGPT or include it with the LLM agent final report. Update `docs/current-task.md` only when the actual project state or next action changed.
+
+On the new computer, rebuild local state from GitHub:
+
+```powershell
+Set-Location C:\Code\{{Project folder}}
+git fetch --all --prune
+git checkout {{Branch name}}
+git pull --ff-only
+npm install
+npm run build
+git status
+```
+
+If the repo does not exist on the new computer yet:
+
+```powershell
+Set-Location C:\Code
+git clone {{Paste the GitHub repo URL}}
+Set-Location C:\Code\{{Project folder}}
+git checkout {{Branch name}}
+npm install
+npm run build
+git status
+```
+
+Restore only local-only secrets and machine setup that the project actually needs. Do not copy generated folders or runtime files just because they exist locally. Recreate generated state from the repo.
+
+Usually recreate or ignore:
+
+- `node_modules/`
+- `dist/`, `.next/`, coverage folders, and other build output
+- local dev server logs or temporary runtime files
+
+Restore manually and securely only when required:
+
+- `.env.local`
+- local API keys or credentials
+- local database files that are intentionally excluded from Git
+- editor, desktop app, or machine-specific settings
+
+Secrets and machine-specific setup do not travel through Git. Use a password manager, secure note, platform dashboard, or another user-controlled source. Never commit secrets.
+
+If this is the first time using the project with Codex or another coding agent on the new computer, return to **Stage 2 - Configure Codex before handoffs** and configure the local coding-agent project before giving it implementation work:
+
+1. Open the coding agent on the new computer.
+2. Add or open the local repo folder, such as `C:\Code\{{Project folder}}`.
+3. Confirm the agent can see the repo files.
+4. Confirm the active branch is the branch you pulled from GitHub.
+5. Confirm the working tree is clean or intentionally dirty.
+6. Confirm the terminal environment is Windows-native PowerShell unless the project intentionally uses something else.
+7. Confirm the repo's standard commands run, such as `npm install`, `npm run build`, and `npm run dev` or the commands listed in `AGENTS.md`.
+8. Start a fresh coding-agent thread for continued implementation unless you are intentionally using a supported remote or cloud coding-agent task.
+
+Use this readiness prompt before asking the coding agent to implement on the new computer:
+
+```md
+This project has just been resumed on a new computer.
+
+Please inspect:
+- AGENTS.md
+- docs/current-task.md
+- docs/product.md
+- docs/architecture.md
+- docs/roadmap.md
+- active docs/campaigns/*.md if relevant
+
+Then confirm:
+1. current branch
+2. git status
+3. repo docs are readable
+4. standard local commands from AGENTS.md or package scripts
+5. whether anything appears missing from the local setup
+
+Do not change files yet. Stop after reporting readiness.
+```
 
 ## Docs health check
 
