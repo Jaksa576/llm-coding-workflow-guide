@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-# Approved patch: add computer-switching workflow after renderer grouping fix.
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GUIDE = ROOT / 'llm_coding_workflow_guide.md'
-PRIMER = ROOT / 'llm-workflow-primer.md'
+RENDER = ROOT / 'tools' / 'render_guide.py'
 WORKFLOW = ROOT / '.github' / 'workflows' / 'apply-guide-patch.yml'
 HELPER = Path(__file__).resolve()
 
-DEFAULT_WORKFLOW = '''name: Apply guide patch
+MANUAL_WORKFLOW = '''name: Apply guide patch
 
+# Manual fallback only. Normal guide edits should update Markdown/source files directly
+# and let the Build guide HTML workflow render and validate the generated HTML.
 on:
-  push:
-    branches: [main]
-    paths:
-      - tools/apply_approved_guide_patch.py
-      - .github/workflows/apply-guide-patch.yml
   workflow_dispatch:
 
 permissions:
@@ -55,11 +51,12 @@ jobs:
             llm_coding_workflow_guide.md
             llm-workflow-primer.md
             llm_coding_workflow_guide.html
+            tools/render_guide.py
             tools/apply_approved_guide_patch.py
             .github/workflows/apply-guide-patch.yml
 '''
 
-DEFAULT_HELPER = r'''#!/usr/bin/env python3
+DEFAULT_HELPER = '''#!/usr/bin/env python3
 from __future__ import annotations
 
 from pathlib import Path
@@ -80,230 +77,58 @@ if __name__ == '__main__':
 '''
 
 
-def insert_after(text: str, anchor: str, addition: str, label: str) -> str:
-    if addition.strip() in text:
-        return text
-    index = text.find(anchor)
-    if index < 0:
-        raise SystemExit(f'Missing anchor for {label}: {anchor}')
-    return text[: index + len(anchor)] + addition + text[index + len(anchor):]
+def cut_section(text: str, start_heading: str, next_heading: str) -> tuple[str, str]:
+    start = text.find(start_heading)
+    if start < 0:
+        return text, ''
+    end = text.find(next_heading, start + len(start_heading))
+    if end < 0:
+        raise SystemExit(f'Missing following heading: {next_heading}')
+    section = text[start:end].strip() + '\n\n'
+    text = text[:start].rstrip() + '\n\n' + text[end:]
+    return text, section
+
+
+def clean_switching_section(section: str) -> str:
+    section = section.replace('## Stage 2B - Switching computers safely', '## Switching computers safely', 1)
+    old_open = 'Switching computers should be a GitHub checkpoint and resume workflow, not a local-folder sync workflow.\n\nDefault to a **clean project switch** whenever possible: finish or pause at a safe checkpoint, commit real work, push the branch, verify the branch is available on GitHub, and make sure the next action is clear before leaving the current computer.'
+    new_open = 'Switching computers is a reference workflow for moving active work between machines. It is not part of one-time project setup.\n\nUse GitHub as the sync layer. Do not try to sync local coding-agent state, generated folders, local worktrees, or runtime files between computers.\n\nDefault to a **clean project switch** whenever possible: finish or pause at a safe checkpoint, commit real work, push the branch, verify the branch is available on GitHub, and make sure the next action is clear before leaving the current computer.'
+    section = section.replace(old_open, new_open, 1)
+    duplicate_start = section.find('\n### Resume on another computer\n')
+    if duplicate_start >= 0:
+        duplicate_end = section.find('\nIf there are meaningful changes that should travel to the next computer:', duplicate_start)
+        if duplicate_end >= 0:
+            section = section[:duplicate_start].rstrip() + '\n\n' + section[duplicate_end:].lstrip()
+    section = section.replace('If this is the first time using the project with Codex or another coding agent on the new computer, configure the local coding-agent project before giving it implementation work:', 'If this is the first time using the project with Codex or another coding agent on the new computer, return to **Stage 2 - Configure Codex before handoffs** and configure the local coding-agent project before giving it implementation work:', 1)
+    return section.strip() + '\n\n'
 
 
 def patch_guide(text: str) -> str:
-    stage_2b = r'''
+    text, section = cut_section(text, '## Stage 2B - Switching computers safely', '## Stage 3 - Define the project')
+    if not section:
+        text, section = cut_section(text, '## Switching computers safely', '## Docs health check')
+    if not section:
+        raise SystemExit('Switching computers section not found.')
+    section = clean_switching_section(section)
+    insert_anchor = "For worktree-based development, local-only completion is not enough. The LLM agent should commit, push the branch to the remote repo, run the repo's branch verification helper when one exists, and include the pushed branch plus verification result in the final report.\n\n"
+    if insert_anchor not in text:
+        raise SystemExit('Reference insertion anchor missing.')
+    return text.replace(insert_anchor, insert_anchor + section, 1)
 
-## Stage 2B - Switching computers safely
 
-Switching computers should be a GitHub checkpoint and resume workflow, not a local-folder sync workflow.
-
-Default to a **clean project switch** whenever possible: finish or pause at a safe checkpoint, commit real work, push the branch, verify the branch is available on GitHub, and make sure the next action is clear before leaving the current computer.
-
-Use three switch types:
-
-- **Clean project switch:** the normal path. Use this when the current slice, patch, or checkpoint is committed and pushed.
-- **Mid-task switch:** use only when you must move computers before work is complete. Commit only meaningful checkpoint work, and provide a short passoff in ChatGPT, the LLM agent final report, or another temporary note.
-- **Remote or cloud coding-agent switch:** optional. Use this only when work is already running in a supported remote or cloud coding-agent environment.
-
-Before leaving the current computer:
-
-```powershell
-git status
-git branch --show-current
-git fetch --all --prune
-git status
-git log --oneline --decorate -5
-```
-
-If there are meaningful changes that should travel to the next computer:
-
-```powershell
-git add {{Files to commit}}
-git commit -m '{{Short checkpoint message}}'
-git push -u origin {{Branch name}}
-# If the repo provides one, then run:
-.\scripts\verify-branch-pushed.ps1
-```
-
-Do not create a new repo file just because you are switching computers. If the project is mid-campaign and the next action would otherwise be unclear, provide a short passoff in ChatGPT or include it with the LLM agent final report. Update `docs/current-task.md` only when the actual project state or next action changed.
-
-On the new computer, rebuild local state from GitHub:
-
-```powershell
-Set-Location C:\Code\{{Project folder}}
-git fetch --all --prune
-git checkout {{Branch name}}
-git pull --ff-only
-npm install
-npm run build
-git status
-```
-
-If the repo does not exist on the new computer yet:
-
-```powershell
-Set-Location C:\Code
-git clone {{Paste the GitHub repo URL}}
-Set-Location C:\Code\{{Project folder}}
-git checkout {{Branch name}}
-npm install
-npm run build
-git status
-```
-
-Restore only local-only secrets and machine setup that the project actually needs. Do not copy generated folders or runtime files just because they exist locally. Recreate generated state from the repo.
-
-Usually recreate or ignore:
-
-- `node_modules/`
-- `dist/`, `.next/`, coverage folders, and other build output
-- local dev server logs or temporary runtime files
-
-Restore manually and securely only when required:
-
-- `.env.local`
-- local API keys or credentials
-- local database files that are intentionally excluded from Git
-- editor, desktop app, or machine-specific settings
-
-Secrets and machine-specific setup do not travel through Git. Use a password manager, secure note, platform dashboard, or another user-controlled source. Never commit secrets.
-
-If this is the first time using the project with Codex or another coding agent on the new computer, configure the local coding-agent project before giving it implementation work:
-
-1. Open the coding agent on the new computer.
-2. Add or open the local repo folder, such as `C:\Code\{{Project folder}}`.
-3. Confirm the agent can see the repo files.
-4. Confirm the active branch is the branch you pulled from GitHub.
-5. Confirm the working tree is clean or intentionally dirty.
-6. Confirm the terminal environment is Windows-native PowerShell unless the project intentionally uses something else.
-7. Confirm the repo's standard commands run, such as `npm install`, `npm run build`, and `npm run dev` or the commands listed in `AGENTS.md`.
-8. Start a fresh coding-agent thread for continued implementation unless you are intentionally using a supported remote or cloud coding-agent task.
-
-Use this readiness prompt before asking the coding agent to implement on the new computer:
-
-```md
-This project has just been resumed on a new computer.
-
-Please inspect:
-- AGENTS.md
-- docs/current-task.md
-- docs/product.md
-- docs/architecture.md
-- docs/roadmap.md
-- active docs/campaigns/*.md if relevant
-
-Then confirm:
-1. current branch
-2. git status
-3. repo docs are readable
-4. standard local commands from AGENTS.md or package scripts
-5. whether anything appears missing from the local setup
-
-Do not change files yet. Stop after reporting readiness.
-```
-'''
-
-    text = insert_after(
-        text,
-        'If you use worktrees, see **Optional Codex worktrees** in the reference material for setup and cleanup templates.',
-        stage_2b,
-        'Stage 2B computer switching section',
-    )
-
-    computer_switch_prompt = r'''
-
-## Computer switch check prompt
-
-Use this before moving active work to another computer, especially during a campaign or patch.
-
-```md
-Help me safely switch computers for this project.
-
-Current computer:
-{{Computer A name or description}}
-
-New computer:
-{{Computer B name or description}}
-
-Target branch:
-{{target branch}}
-
-Current state:
-{{What work is active, or paste the LLM agent final report}}
-
-Please help me:
-1. identify what must be committed and pushed before switching
-2. identify which docs should be updated before switching
-3. give me the PowerShell commands to verify the branch is safe to leave
-4. give me the PowerShell commands to resume on the new computer
-5. call out anything that should not be synced, such as secrets, generated folders, or runtime logs
-6. recommend whether to start a fresh coding-agent thread, continue through a supported remote/cloud task, or only do QA on the new computer
-```
-'''
-
-    text = insert_after(
-        text,
-        'After the source-of-truth check, answer my request:\n{{What do you want ChatGPT to answer or help with?}}\n```',
-        computer_switch_prompt,
-        'Computer switch check prompt',
-    )
-
-    powershell_resume = r'''
-
-### Resume on another computer
-
-```powershell
-Set-Location C:\Code\{{Project folder}}
-git fetch --all --prune
-git checkout {{Branch name}}
-git pull --ff-only
-npm install
-npm run build
-git status
-```
-
-Do not copy `node_modules`, build output, coverage folders, or local runtime logs between computers. Restore only required local-only secrets or machine settings, and never commit them.
-'''
-
-    text = insert_after(
-        text,
-        'git log --oneline --decorate -5\n```',
-        powershell_resume,
-        'PowerShell resume on another computer commands',
-    )
-
+def patch_renderer(text: str) -> str:
+    text = text.replace('            "Stage 2B - Switching computers safely",\n', '')
+    if '            "Switching computers safely",\n' not in text:
+        text = text.replace('            "Token-efficient repo helpers",\n', '            "Token-efficient repo helpers",\n            "Switching computers safely",\n', 1)
     return text
 
 
-def patch_primer(text: str) -> str:
-    addition = r'''
-
-## Switching computers
-
-Use GitHub as the sync layer when moving between computers. Before leaving a computer, commit and push meaningful work, verify the branch is available on GitHub, and make sure the next action is clear in repo docs, a final report, or a short ChatGPT passoff.
-
-On the new computer, clone or pull from GitHub, recreate generated state with the repo's normal setup commands, restore only required local-only secrets or machine settings, and configure the local coding-agent project if it does not already exist. Do not copy generated folders, runtime logs, local worktrees, or coding-agent cache/state as the source of truth.
-'''
-    return insert_after(
-        text,
-        'Do not assume WSL. Use Windows paths such as `C:\\Code\\ProjectName` when examples are needed.',
-        addition,
-        'Primer switching computers section',
-    )
-
-
 def main() -> int:
-    guide = GUIDE.read_text(encoding='utf-8')
-    primer = PRIMER.read_text(encoding='utf-8')
-
-    guide = patch_guide(guide)
-    primer = patch_primer(primer)
-
-    GUIDE.write_text(guide, encoding='utf-8')
-    PRIMER.write_text(primer, encoding='utf-8')
-    WORKFLOW.write_text(DEFAULT_WORKFLOW, encoding='utf-8')
+    GUIDE.write_text(patch_guide(GUIDE.read_text(encoding='utf-8')), encoding='utf-8')
+    RENDER.write_text(patch_renderer(RENDER.read_text(encoding='utf-8')), encoding='utf-8')
+    WORKFLOW.write_text(MANUAL_WORKFLOW, encoding='utf-8')
     HELPER.write_text(DEFAULT_HELPER, encoding='utf-8')
-
-    print('Applied computer-switching workflow guide updates.')
+    print('Moved computer switching from setup into reference material.')
     return 0
 
 
