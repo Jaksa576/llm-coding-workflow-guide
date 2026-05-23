@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+# One-time relocation patch: move computer switching from setup to reference material.
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
