@@ -2,6 +2,7 @@
 """Render llm_coding_workflow_guide.md into llm_coding_workflow_guide.html."""
 from __future__ import annotations
 
+# Renderer groups new Stage/Loop/Reference headings automatically to avoid stale sidebar failures.
 import html
 import re
 from pathlib import Path
