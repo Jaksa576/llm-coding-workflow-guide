@@ -88,155 +88,206 @@ def insert_after(text: str, anchor: str, addition: str, label: str) -> str:
     return text[: index + len(anchor)] + addition + text[index + len(anchor):]
 
 
-def replace_once(text: str, old: str, new: str, label: str) -> str:
-    if old not in text:
-        if new in text:
-            return text
-        raise SystemExit(f'Missing text for {label}')
-    return text.replace(old, new, 1)
-
-
 def patch_guide(text: str) -> str:
-    text = insert_after(
-        text,
-        'Keep worktree setup in Codex project settings or helper scripts, not in every handoff prompt.',
-        '\n\nAs a project matures, move repeated setup, validation, and branch-verification commands into repo-owned scripts or package commands. Handoffs should reference those helpers instead of re-teaching the LLM agent the same command sequence.',
-        'Stage 2 helper guidance',
-    )
+    stage_2b = r'''
 
-    text = insert_after(
-        text,
-        'Keep repeatable setup and cleanup logic in repo helper scripts or Codex project settings, not in every handoff prompt. A handoff should mention worktree setup only when the task depends on it.',
-        '\n\nIf a worktree uses a local branch, the work is not complete until the branch is committed, pushed to the remote repo, and verified as pushed. Prefer a repo-owned branch verification script, such as `.\\scripts\\verify-branch-pushed.ps1`, when the project provides one.',
-        'Stage 2A branch-push guidance',
-    )
+## Stage 2B - Switching computers safely
 
-    text = insert_after(
-        text,
-        'Codex handoff rule:\nDo not require a standard project/repository/header block by default. Codex should already have the project, repo, environment, and worktree settings configured. Include target branch, repo, or environment details only when the task needs them or when they are not obvious.',
-        '\n\nIf the repo provides standard commands in `AGENTS.md`, package scripts, or `scripts/`, generated handoffs should reference those helpers instead of restating common setup and validation steps. Prefer repo-owned validation and branch-push verification commands, such as `npm run check`, `.\\scripts\\validate.ps1`, or `.\\scripts\\verify-branch-pushed.ps1`, when present.',
-        'Stage 4 handoff optimization guidance',
-    )
+Switching computers should be a GitHub checkpoint and resume workflow, not a local-folder sync workflow.
 
-    text = insert_after(
-        text,
-        '- Include the expectation that Codex updates docs/current-task.md after every implementation.',
-        '\n- For projects using worktrees, include that branch work must be pushed to the remote repo before final report.\n- If the repo has standard setup, validation, or branch-verification scripts, document them in `AGENTS.md` instead of repeating those commands in every handoff.',
-        'Stage 5 repo docs requirements',
-    )
+Default to a **clean project switch** whenever possible: finish or pause at a safe checkpoint, commit real work, push the branch, verify the branch is available on GitHub, and make sure the next action is clear before leaving the current computer.
 
-    text = insert_after(
-        text,
-        'Do not include command-by-command worktree setup unless it is required for this specific task.',
-        '\nIf the repo docs already define standard commands, the handoff should refer to them instead of listing the whole command sequence. If worktrees are used, require the branch to be pushed before final report.',
-        'Stage 7 bootstrap handoff guidance',
-    )
+Use three switch types:
 
-    text = insert_after(
-        text,
-        '- Do not include command-by-command setup unless explicitly needed.\n- Keep the handoff copy-paste ready.',
-        '\n- Prefer repo-owned standard commands from `AGENTS.md`, package scripts, or `scripts/` for setup, validation, and branch verification.\n- If the repo provides a branch-push verification script and the work uses a worktree, include it in validation or final-report expectations.\n- Do not create extra active-context files just to repeat the handoff; the handoff is the active execution packet and repo docs are durable truth.',
-        'Loop Step C rules',
-    )
+- **Clean project switch:** the normal path. Use this when the current slice, patch, or checkpoint is committed and pushed.
+- **Mid-task switch:** use only when you must move computers before work is complete. Commit only meaningful checkpoint work, and provide a short passoff in ChatGPT, the LLM agent final report, or another temporary note.
+- **Remote or cloud coding-agent switch:** optional. Use this only when work is already running in a supported remote or cloud coding-agent environment.
 
-    text = replace_once(
-        text,
-        '4. Let LLM agent inspect docs, implement, validate, update docs, commit, and push.',
-        '4. Let LLM agent inspect docs, implement, validate, update docs, commit, push, and verify the branch is pushed when a repo helper exists.',
-        'Loop Step D implementation step',
-    )
+Before leaving the current computer:
 
-    text = insert_after(
-        text,
-        'A good LLM agent final report must include:\n\n- branch\n- commit',
-        '\n- pushed remote branch, when work was done on a branch or worktree\n- branch-push verification result, when the repo provides a verification script',
-        'Loop Step D final report fields',
-    )
+```powershell
+git status
+git branch --show-current
+git fetch --all --prune
+git status
+git log --oneline --decorate -5
+```
 
-    text = insert_after(
-        text,
-        'Final report must include:\n- branch\n- commit',
-        '\n- pushed remote branch, when work was done on a branch or worktree\n- branch-push verification result, when the repo provides a verification script',
-        'Loop Step F final report fields',
-    )
+If there are meaningful changes that should travel to the next computer:
 
-    repo_helpers_section = '''
-## Token-efficient repo helpers
+```powershell
+git add {{Files to commit}}
+git commit -m '{{Short checkpoint message}}'
+git push -u origin {{Branch name}}
+# If the repo provides one, then run:
+.\scripts\verify-branch-pushed.ps1
+```
 
-As a project matures, move repeated setup, validation, and branch hygiene into repo-owned helpers instead of repeating commands in every handoff.
+Do not create a new repo file just because you are switching computers. If the project is mid-campaign and the next action would otherwise be unclear, provide a short passoff in ChatGPT or include it with the LLM agent final report. Update `docs/current-task.md` only when the actual project state or next action changed.
 
-Useful helpers include:
+On the new computer, rebuild local state from GitHub:
 
-- a single package validation command, such as `npm run check`
-- a setup script, such as `.\\scripts\\setup-codex-worktree.ps1`
-- a validation script, such as `.\\scripts\\validate.ps1`
-- a branch-push verification script, such as `.\\scripts\\verify-branch-pushed.ps1`
-- a small command menu in `AGENTS.md`
+```powershell
+Set-Location C:\Code\{{Project folder}}
+git fetch --all --prune
+git checkout {{Branch name}}
+git pull --ff-only
+npm install
+npm run build
+git status
+```
 
-Use these helpers to keep handoffs short. The handoff should say what to accomplish, what docs to inspect, and what acceptance criteria matter. The repo should own repeatable command details.
+If the repo does not exist on the new computer yet:
 
-Do not create a separate active-context file just to duplicate the handoff. The handoff is the active execution packet for the current run. Repo docs are the durable source of truth, and `docs/current-task.md` should stay concise enough to point to current status and next action without becoming a long final-report archive.
+```powershell
+Set-Location C:\Code
+git clone {{Paste the GitHub repo URL}}
+Set-Location C:\Code\{{Project folder}}
+git checkout {{Branch name}}
+npm install
+npm run build
+git status
+```
 
-For worktree-based development, local-only completion is not enough. The LLM agent should commit, push the branch to the remote repo, run the repo's branch verification helper when one exists, and include the pushed branch plus verification result in the final report.
+Restore only local-only secrets and machine setup that the project actually needs. Do not copy generated folders or runtime files just because they exist locally. Recreate generated state from the repo.
 
+Usually recreate or ignore:
+
+- `node_modules/`
+- `dist/`, `.next/`, coverage folders, and other build output
+- local dev server logs or temporary runtime files
+
+Restore manually and securely only when required:
+
+- `.env.local`
+- local API keys or credentials
+- local database files that are intentionally excluded from Git
+- editor, desktop app, or machine-specific settings
+
+Secrets and machine-specific setup do not travel through Git. Use a password manager, secure note, platform dashboard, or another user-controlled source. Never commit secrets.
+
+If this is the first time using the project with Codex or another coding agent on the new computer, configure the local coding-agent project before giving it implementation work:
+
+1. Open the coding agent on the new computer.
+2. Add or open the local repo folder, such as `C:\Code\{{Project folder}}`.
+3. Confirm the agent can see the repo files.
+4. Confirm the active branch is the branch you pulled from GitHub.
+5. Confirm the working tree is clean or intentionally dirty.
+6. Confirm the terminal environment is Windows-native PowerShell unless the project intentionally uses something else.
+7. Confirm the repo's standard commands run, such as `npm install`, `npm run build`, and `npm run dev` or the commands listed in `AGENTS.md`.
+8. Start a fresh coding-agent thread for continued implementation unless you are intentionally using a supported remote or cloud coding-agent task.
+
+Use this readiness prompt before asking the coding agent to implement on the new computer:
+
+```md
+This project has just been resumed on a new computer.
+
+Please inspect:
+- AGENTS.md
+- docs/current-task.md
+- docs/product.md
+- docs/architecture.md
+- docs/roadmap.md
+- active docs/campaigns/*.md if relevant
+
+Then confirm:
+1. current branch
+2. git status
+3. repo docs are readable
+4. standard local commands from AGENTS.md or package scripts
+5. whether anything appears missing from the local setup
+
+Do not change files yet. Stop after reporting readiness.
+```
 '''
-    text = insert_after(
-        text,
-        "## Documentation delta\n\nEvery LLM agent final report should include a documentation delta.\n\n```md\nDocumentation delta:\n- docs/current-task.md: {{Summarize what changed in docs/current-task.md}}\n- campaign doc, if applicable: {{Summarize what changed, or write 'not applicable'}}\n- docs/architecture.md: {{Summarize what changed, or write 'not applicable'}}\n- docs/roadmap.md: {{Summarize what changed, or write 'not applicable'}}\n```\n\n",
-        repo_helpers_section,
-        'Token-efficient repo helpers section',
-    )
-
-    text = replace_once(
-        text,
-        'Validation:\n- {{what commands, tests, preview checks, or manual checks should be run:}}',
-        "Validation:\n- {{what commands, tests, preview checks, or manual checks should be run:}}\n- Prefer the repo's standard validation command or script when present, such as `npm run check` or `.\\scripts\\validate.ps1`.",
-        'Minimal handoff validation guidance',
-    )
 
     text = insert_after(
         text,
-        'Final report:\n- branch\n- commit',
-        '\n- pushed remote branch, when work was done on a branch or worktree\n- branch-push verification result, when the repo provides a verification script',
-        'Minimal handoff final report fields',
+        'If you use worktrees, see **Optional Codex worktrees** in the reference material for setup and cleanup templates.',
+        stage_2b,
+        'Stage 2B computer switching section',
     )
 
-    branch_script_section = '''
-Good branch-verification scripts should:
+    computer_switch_prompt = r'''
 
-- fail on `main` unless explicitly allowed
-- fail when uncommitted changes exist
-- fetch and prune remote refs
-- verify the current branch has an upstream
-- verify local `HEAD` is pushed to the upstream branch
-- fail if the local branch is ahead of the remote branch
+## Computer switch check prompt
 
+Use this before moving active work to another computer, especially during a campaign or patch.
+
+```md
+Help me safely switch computers for this project.
+
+Current computer:
+{{Computer A name or description}}
+
+New computer:
+{{Computer B name or description}}
+
+Target branch:
+{{target branch}}
+
+Current state:
+{{What work is active, or paste the LLM agent final report}}
+
+Please help me:
+1. identify what must be committed and pushed before switching
+2. identify which docs should be updated before switching
+3. give me the PowerShell commands to verify the branch is safe to leave
+4. give me the PowerShell commands to resume on the new computer
+5. call out anything that should not be synced, such as secrets, generated folders, or runtime logs
+6. recommend whether to start a fresh coding-agent thread, continue through a supported remote/cloud task, or only do QA on the new computer
+```
 '''
+
     text = insert_after(
         text,
-        'Good cleanup scripts should:\n\n- remove only disposable generated folders\n- never delete source files, docs, migrations, config, or local secrets\n- be safe to run more than once\n\n',
-        branch_script_section,
-        'Branch verification script guidance',
+        'After the source-of-truth check, answer my request:\n{{What do you want ChatGPT to answer or help with?}}\n```',
+        computer_switch_prompt,
+        'Computer switch check prompt',
     )
 
-    text = replace_once(
+    powershell_resume = r'''
+
+### Resume on another computer
+
+```powershell
+Set-Location C:\Code\{{Project folder}}
+git fetch --all --prune
+git checkout {{Branch name}}
+git pull --ff-only
+npm install
+npm run build
+git status
+```
+
+Do not copy `node_modules`, build output, coverage folders, or local runtime logs between computers. Restore only required local-only secrets or machine settings, and never commit them.
+'''
+
+    text = insert_after(
         text,
-        'git push origin {{Branch name}}',
-        'git push -u origin {{Branch name}}\n# If the repo provides one, then run:\n.\\scripts\\verify-branch-pushed.ps1',
-        'PowerShell push command',
+        'git log --oneline --decorate -5\n```',
+        powershell_resume,
+        'PowerShell resume on another computer commands',
     )
 
     return text
 
 
 def patch_primer(text: str) -> str:
-    text = insert_after(
+    addition = r'''
+
+## Switching computers
+
+Use GitHub as the sync layer when moving between computers. Before leaving a computer, commit and push meaningful work, verify the branch is available on GitHub, and make sure the next action is clear in repo docs, a final report, or a short ChatGPT passoff.
+
+On the new computer, clone or pull from GitHub, recreate generated state with the repo's normal setup commands, restore only required local-only secrets or machine settings, and configure the local coding-agent project if it does not already exist. Do not copy generated folders, runtime logs, local worktrees, or coding-agent cache/state as the source of truth.
+'''
+    return insert_after(
         text,
-        'Do not restate all project context when the repo docs already contain it. Keep handoffs copy-paste ready.',
-        '\n\nWhen the repo provides standard setup, validation, or branch-verification scripts, reference those helpers instead of restating command sequences. For worktree branches, require the coding agent to push the branch and report branch-push verification when the repo provides that helper.',
-        'Primer handoff helper guidance',
+        'Do not assume WSL. Use Windows paths such as `C:\\Code\\ProjectName` when examples are needed.',
+        addition,
+        'Primer switching computers section',
     )
-    return text
 
 
 def main() -> int:
@@ -251,7 +302,7 @@ def main() -> int:
     WORKFLOW.write_text(DEFAULT_WORKFLOW, encoding='utf-8')
     HELPER.write_text(DEFAULT_HELPER, encoding='utf-8')
 
-    print('Applied token-efficient handoff and branch-verification guide updates.')
+    print('Applied computer-switching workflow guide updates.')
     return 0
 
 
