@@ -12,7 +12,7 @@ The repository is the durable memory. Chat history is temporary.
 
 Assume a Windows-native workflow with PowerShell unless the user explicitly says otherwise. Do not assume WSL. Use Windows paths such as `C:\Code\ProjectName` when examples are needed.
 
-For group projects, keep shared setup and validation commands cross-platform when practical. Prefer package scripts such as `npm install`, `npm run build`, and repo-owned validation commands. Label OS-specific shell commands clearly.
+For group or cross-platform projects, keep shared setup and validation commands cross-platform when practical. Prefer package scripts such as `npm install`, `npm run build`, and repo-owned validation commands. Label OS-specific shell commands clearly.
 
 ## Source-of-truth docs
 
@@ -28,7 +28,7 @@ Core docs to inspect:
 - `docs/collaboration.md` when group work is active
 - active `docs/campaigns/*.md` files when relevant
 - active `docs/design/*.md` files when relevant
-- active GitHub Issues and PRs when group work may overlap current work
+- active GitHub Issues and PRs when work may overlap another branch or needs durable tracking
 
 Do not rely on memory or prior chat assumptions when repo state matters. If docs conflict, call out the conflict before recommending next steps.
 
@@ -45,16 +45,24 @@ Use the same loop for most work:
 
 Use a campaign for a large swath of related work. Use a slice for one independently reviewable unit of implementation. Use a patch for a narrow correction.
 
-## Group collaboration
+## Lightweight Issue and PR tracking
 
-For group projects, use GitHub Issues and Pull Requests as the active work tracker.
+Issues and PRs are optional tracking tools, not a replacement for the workflow.
 
-- `docs/current-task.md` explains the main project track.
-- A GitHub Issue explains one person's assigned task, owner, branch, scope, focused files/docs, files/docs to avoid, acceptance criteria, validation, and expected documentation updates.
-- A Draft PR shows active work on a branch and should be opened early when multiple contributors are active.
-- Discord is useful for discussion and quick updates, but durable decisions should be summarized back into repo docs when they affect product, architecture, roadmap, campaign status, or next action.
+Use Issue/PR tracking by default for campaigns, multi-day branches, worktree-based work, project switching, risky architecture/product changes, and group work. Skip it for tiny patches and same-session solo changes unless it would help.
 
-Coding agents should check active Issues, PRs, and related branches before coding. If another active branch appears to touch the same files or systems, they should stop and report the possible overlap before editing.
+Keep roles distinct:
+
+- Roadmap: strategic sequence and deferred work.
+- `docs/current-task.md`: main current project pointer.
+- Campaign doc: multi-slice plan and status.
+- Issue: active work contract with owner, branch, scope, focused files/docs, files/docs to avoid, done-when, validation, and expected docs updates.
+- Draft PR: active branch and review record with summary, validation, documentation delta, risks, and manual QA notes.
+- Discord/chat: discussion, not durable truth.
+
+For group work, Issues and Draft PRs are required. For solo campaign or long-running branch work, they are recommended.
+
+Coding agents should check active Issues, PRs, and related branches before coding when Issue/PR tracking is in use. If another active branch appears to touch the same files or systems, they should stop and report the possible overlap before editing.
 
 ## Coding-agent handoff expectations
 
@@ -72,7 +80,7 @@ Coding-agent handoffs should include:
 - stop conditions
 - final reporting expectations
 
-For group work, also include:
+When Issue/PR tracking is in use, also include:
 
 - owner
 - linked Issue or assigned work item
@@ -87,10 +95,10 @@ Do not restate all project context when the repo docs already contain it. Keep h
 
 The coding agent owns documentation freshness during implementation. Every implementation should update `docs/current-task.md` when current status, next task, validation, or active branch changes. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
 
-Every coding-agent final report should include a documentation delta that says which docs changed and why. For group work, the PR summary should also include the documentation delta before the PR is marked ready for review.
+Every coding-agent final report should include a documentation delta that says which docs changed and why. When Issue/PR tracking is in use, the PR summary should also include the documentation delta before the PR is marked ready for review.
 
 ChatGPT should inspect repo docs at the target branch whenever current state matters. Prior chat context and final reports are orientation only; repo docs remain authoritative.
 
 ## ChatGPT behavior
 
-Start with the recommendation. Focus on what the user should do next. Prefer reviewable slices. Use the configured GitHub connector before asking for pasted docs when current state matters. Push back on unclear scope, overlapping group work, overengineering, generic product drift, stale docs, and unnecessary AI dependencies.
+Start with the recommendation. Focus on what the user should do next. Prefer reviewable slices. Use the configured GitHub connector before asking for pasted docs when current state matters. Push back on unclear scope, overlapping branch work, overengineering, generic product drift, stale docs, and unnecessary AI dependencies.
