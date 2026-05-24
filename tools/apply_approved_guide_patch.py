@@ -217,18 +217,18 @@ def update_primer() -> None:
     text = PRIMER.read_text(encoding='utf-8')
     text = replace_once(
         text,
-        'Use ChatGPT for planning, roadmap decisions, QA triage, and coding-agent handoffs. Use an LLM coding agent such as Codex for repo-based implementation. The user remains the product owner and approves direction, QA, and merge decisions.\n\nThe repository is the durable memory. Chat history is temporary.',
-        'Use ChatGPT for planning, roadmap decisions, QA triage, and coding-agent handoffs. Use an LLM coding agent such as Codex for repo-based implementation. The user remains the product owner and approves direction, QA, and merge decisions.\n\nThis workflow is optimized for a two-context setup where planning and implementation may have different token costs, context limits, latency, or ergonomics. If planning and coding happen inside one tool with the same token economics, the workflow still helps with repo docs, reviewable slices, QA, and documentation freshness, but the token-efficiency advantage may be smaller.\n\nThe repository is the durable memory. Chat history is temporary.',
-        'primer token-efficiency clarification',
+        'Use ChatGPT for planning, roadmap decisions, QA triage, and coding-agent handoffs. Use an LLM coding agent such as Codex for repo-based implementation. The user remains the product owner and approves direction, QA, and merge decisions.',
+        'Use ChatGPT for planning, QA triage, and handoffs; use Codex or another agent for repo implementation. This two-context split is most valuable when planning and coding have different token costs or context behavior. The user owns direction, QA, and merges.',
+        'primer compact token-efficiency clarification',
     )
     text = replace_once(
         text,
         'For group work, Issues and Draft PRs are required. Each meaningful group work item should have an owner, branch, scope, focused files/docs, files/docs to avoid, validation expectations, and done-when criteria. Do not implement directly on `main` unless the repo explicitly allows it for the task. Add `docs/collaboration.md` when these rules need to be reusable across the repo. For solo campaign or long-running branch work, Issues and Draft PRs are recommended.',
-        'For group work, Issues and Draft PRs are required. Each meaningful group work item should have an owner, branch, scope, focused files/docs, files/docs to avoid, validation expectations, and done-when criteria. Do not implement directly on `main` unless the repo explicitly allows it for the task. Add `docs/collaboration.md` during setup or before the first group work item when these rules need to be reusable across the repo. For solo campaign or long-running branch work, Issues and Draft PRs are recommended.',
-        'primer collaboration setup clarification',
+        'For group work, Issues and Draft PRs are required. Each meaningful item needs an owner, branch, scope, focused files/docs, files/docs to avoid, validation, and done-when criteria. Add `docs/collaboration.md` during setup or before the first group work item. Solo long-running branches: recommended.',
+        'primer compact collaboration setup clarification',
     )
     PRIMER.write_text(text, encoding='utf-8')
-    print('Updated primer token and collaboration-doc setup guidance.')
+    print('Updated primer while keeping it under the compactness limit.')
 
 
 def main() -> int:
