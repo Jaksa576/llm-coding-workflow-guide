@@ -18,13 +18,15 @@ This workflow is for hobbyist and solo builders who want real software projects 
 
 The default setup is **ChatGPT for planning** and **Codex or another LLM coding agent for implementation**. Windows-native PowerShell examples are used unless a project says otherwise.
 
+This workflow is especially valuable when ChatGPT planning and coding-agent execution have different token costs, context limits, latency, or ergonomics. It keeps exploratory planning in ChatGPT and sends the coding agent only the task-specific context it needs. If you use a tool where planning and implementation share the same context and token economics, such as an all-in-one coding environment, the workflow can still help with source-of-truth docs, reviewable slices, QA, and documentation freshness, but the token-efficiency advantage may be smaller.
+
 The goal is not to create perfect prompts. The goal is to create a repeatable system where projects use the same source-of-truth docs, reviewable implementation loop, validation expectations, documentation deltas, and QA decision points.
 
 ## Why the split works
 
 Keep planning context and execution context separate. ChatGPT carries product thinking, roadmap decisions, QA triage, and handoff generation. The coding agent receives only the current task, source-of-truth docs, acceptance criteria, validation expectations, and documentation delta.
 
-That separation keeps handoffs lean, reduces stale context, and makes projects easier to resume across chats, branches, devices, and collaborators.
+That separation keeps handoffs lean, reduces stale context, and makes projects easier to resume across chats, branches, devices, and collaborators. It is also a token-routing strategy: do broad, messy planning where it is cheapest and most useful, then send the coding agent a narrow execution packet.
 
 If your planning LLM and coding agent have similar costs and context behavior, you can streamline some planning steps for small tasks. Do not collapse source-of-truth docs, acceptance criteria, validation expectations, documentation delta, or the final report loop unless the project is truly disposable.
 
@@ -34,8 +36,9 @@ If your planning LLM and coding agent have similar costs and context behavior, y
 2. Create the ChatGPT Project and add the compact workflow primer.
 3. Configure GitHub source-of-truth access and the local coding-agent project.
 4. Define the project, generate app-specific instructions, and create core repo docs.
-5. Bootstrap the project with a coding-agent handoff.
-6. Repeat the main loop: plan work -> generate handoff -> implement -> validate -> update docs -> final report -> QA -> merge, patch, revise, or stop.
+5. Add `docs/collaboration.md` if this is a group repo or overlapping branch work is likely.
+6. Bootstrap the project with a coding-agent handoff.
+7. Repeat the main loop: plan work -> generate handoff -> implement -> validate -> update docs -> final report -> QA -> merge, patch, revise, or stop.
 7. Close out campaigns, clean stale context from the hot path, and start a new chat for the next phase when useful.
 
 Most time is spent in the implementation loop, not setup.
@@ -269,7 +272,7 @@ Please draft these core files:
 4. docs/roadmap.md
 5. docs/current-task.md
 
-If this will be a group repo, also draft `docs/collaboration.md` with branch, Issue, Draft PR, review, and overlap-check expectations.
+If this will be a group repo, continue to **Stage 5A - Add group collaboration docs when needed** before committing the docs.
 
 Requirements:
 - Keep each file concise and useful for LLM-assisted development.
@@ -286,6 +289,53 @@ Output each file in a separate fenced markdown block with the file path as the h
 ```
 
 
+## Stage 5A - Add group collaboration docs when needed
+
+Skip this stage for a solo repo unless you expect another person, coding agent, or long-running branch to overlap your work. Use it when the project is a group repo, when you are inviting collaborators, or when multiple active branches need coordination rules.
+
+`docs/collaboration.md` should stay short. It is not a social contract or full team handbook. It is the repo-level operating rule for ownership, branch hygiene, Issues, Draft PRs, review expectations, and overlap checks.
+
+```md
+Create a concise group collaboration doc for this repo.
+
+Project name:
+{{project name}}
+
+Repo context:
+{{short description of who may collaborate and how, or write "small group repo"}}
+
+Default branch:
+main
+
+Expected work style:
+- ChatGPT for planning and QA triage
+- Codex or another coding agent for implementation
+- GitHub Issues for active work contracts
+- Draft PRs for active branches and review records
+- Repo docs as the source of truth
+
+Please draft `docs/collaboration.md` with these sections:
+1. collaboration purpose
+2. roles and ownership
+3. branch rules
+4. Issue rules
+5. Draft PR rules
+6. overlap-check rules before coding
+7. review and QA expectations
+8. where durable decisions belong
+9. what not to put in chat only
+
+Rules:
+- Keep it concise and practical.
+- Require an owner, branch, scope, focused files/docs, files/docs to avoid, validation expectations, and done-when criteria for each meaningful group work item.
+- Require coding agents to check active Issues, PRs, and related remote branches before editing.
+- Require the agent to stop and report if another active branch may touch the same files or systems.
+- Clarify that Discord/chat is for discussion, not durable project truth.
+- Do not duplicate product, architecture, roadmap, or current-task content.
+```
+
+After creating the file, commit it with the other source-of-truth docs or as a small follow-up docs commit.
+
 ## Stage 6 - Add the core docs to the repo
 
 The easiest path is manual: create the files locally in the repo folder, paste in the generated contents, then commit and push. This avoids a Codex handoff before the docs exist.
@@ -297,12 +347,15 @@ Create these files:
 - `docs/architecture.md`
 - `docs/roadmap.md`
 - `docs/current-task.md`
+- `docs/collaboration.md` only when group work is active
 
 Then run:
 
 ```powershell
 git status
 git add AGENTS.md docs/product.md docs/architecture.md docs/roadmap.md docs/current-task.md
+# For group repos, also include:
+git add docs/collaboration.md
 git commit -m "Add initial project source-of-truth docs"
 git push origin main
 ```
@@ -329,6 +382,7 @@ Source-of-truth docs now in repo:
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
+- docs/collaboration.md, if group work is active
 
 Bootstrap goal:
 Create the initial working project shell, first validation path, and any minimal deploy/run setup appropriate for the project. Do not build the full MVP unless the repo docs explicitly say the project is tiny enough for that.
@@ -713,13 +767,14 @@ Group repo mode is the same core workflow with stricter coordination. Use it whe
 
 For group work:
 
+- Create `docs/collaboration.md` during setup or before the first group work item.
 - Use an Issue plus Draft PR for each meaningful work item.
 - Give each work item an owner, branch, scope, focused files/docs, files/docs to avoid, validation expectations, and done-when criteria.
 - Do not implement directly on `main` unless the repo explicitly allows that for the specific task.
 - Before coding, check active Issues, PRs, and related remote branches for overlap.
 - If another active branch appears to touch the same files or systems, stop and coordinate before editing.
 - Use Discord or chat for discussion, but record durable decisions in Issues, PRs, or repo docs.
-- Add `docs/collaboration.md` when collaboration rules, ownership, review expectations, or branch conventions need to be reusable across the project.
+- Add `docs/collaboration.md` when collaboration rules, ownership, review expectations, or branch conventions need to be reusable across the project. Use **Stage 5A - Add group collaboration docs when needed** for the setup prompt.
 
 For solo projects, keep this lightweight. Use Issue/PR tracking for multi-day branches, risky changes, worktrees, project switching, or anything you may need to review later. Skip it for tiny same-session patches.
 
