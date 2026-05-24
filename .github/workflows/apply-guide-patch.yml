@@ -29,6 +29,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install diagram dependency
+        run: python -m pip install pillow
+
       - name: Apply approved guide patch
         run: python tools/apply_approved_guide_patch.py
 
