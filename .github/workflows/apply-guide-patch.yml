@@ -1,6 +1,7 @@
 name: Apply guide patch
 
 # Temporary push trigger is used only for an approved maintenance patch.
+# Retry trigger: complete diagram generation and reset cleanup.
 # The helper should reset this workflow back to workflow_dispatch-only after it runs.
 on:
   push:
