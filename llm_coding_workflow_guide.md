@@ -1151,7 +1151,9 @@ if (-not [string]::IsNullOrWhiteSpace($InstallCommand)) {
 Write-Host 'Codex environment setup complete.'
 ```
 
-## PowerShell cheat sheet
+## Terminal cheat sheet
+
+These commands are written for a Windows-native PowerShell terminal. If a project uses a different shell, adapt the path and process-management syntax instead of assuming WSL.
 
 ### Navigation
 
@@ -1186,8 +1188,26 @@ git push -u origin {{Branch name}}
 ```powershell
 npm install
 npm run dev
+# Keep this terminal open while the local app runs.
+# To stop the local dev server, press Ctrl+C in this terminal.
+# If PowerShell asks for confirmation, type Y and press Enter.
 npm test
 npm run build
+```
+
+### Close a stuck local dev server
+
+Use this only when `Ctrl+C` did not close the dev server. Replace the port with the port shown by the dev server, such as `3000`, `5173`, or `8080`.
+
+```powershell
+$port = 5173
+$devServer = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+if ($devServer) {
+  Get-Process -Id $devServer.OwningProcess
+  Stop-Process -Id $devServer.OwningProcess -Force
+} else {
+  Write-Host "No dev server is listening on port $port."
+}
 ```
 
 ### Clean generated files
