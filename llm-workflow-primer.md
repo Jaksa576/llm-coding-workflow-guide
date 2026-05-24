@@ -4,7 +4,7 @@ Use this compact primer as reference material inside each ChatGPT Project. Keep 
 
 ## Core workflow
 
-Use ChatGPT for planning, roadmap decisions, QA triage, and coding-agent handoffs. Use an LLM coding agent such as Codex for repo-based implementation. The user remains the product owner and approves direction, QA, and merge decisions.
+Use ChatGPT for planning, QA triage, and coding-agent handoffs. Use Codex or another agent for repo implementation. This two-context split is most valuable when planning and coding have different token costs, context limits, latency, or ergonomics. The user owns direction, QA, and merge decisions.
 
 The repository is the durable memory. Chat history is temporary.
 
@@ -43,7 +43,7 @@ Use the same loop for most work:
 5. The user QA reviews the preview/local result.
 6. Merge, patch, revise the campaign, or stop.
 
-Use a campaign for a large swath of related work. Use a slice for one independently reviewable unit of implementation. Use a patch for a narrow correction.
+Use a campaign for a large swath of related work. Use a slice for one independently reviewable unit. Use a patch for a narrow correction.
 
 ## Lightweight Issue and PR tracking
 
@@ -60,7 +60,7 @@ Keep roles distinct:
 - Draft PR: active branch and review record with summary, validation, documentation delta, risks, and manual QA notes.
 - Discord/chat: discussion, not durable truth.
 
-For group work, Issues and Draft PRs are required. Each meaningful group work item should have an owner, branch, scope, focused files/docs, files/docs to avoid, validation expectations, and done-when criteria. Do not implement directly on `main` unless the repo explicitly allows it for the task. Add `docs/collaboration.md` when these rules need to be reusable across the repo. For solo campaign or long-running branch work, Issues and Draft PRs are recommended.
+For group work, Issues and Draft PRs are required. Each meaningful item needs an owner, branch, scope, focused files/docs, files/docs to avoid, validation, and done-when criteria. Add `docs/collaboration.md` during setup or before the first group work item. Solo long-running branches: recommended.
 
 Coding agents should check active Issues, PRs, and related branches before coding when Issue/PR tracking is in use. If another active branch appears to touch the same files or systems, they should stop and report the possible overlap before editing.
 
