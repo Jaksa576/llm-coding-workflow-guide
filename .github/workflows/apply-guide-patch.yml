@@ -3,12 +3,6 @@ name: Apply guide patch
 # Manual fallback only. Normal guide edits should update Markdown/source files directly
 # and let the Build guide HTML workflow render and validate the generated HTML.
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'tools/apply_approved_guide_patch.py'
-      - '.github/workflows/apply-guide-patch.yml'
   workflow_dispatch:
 
 permissions:
