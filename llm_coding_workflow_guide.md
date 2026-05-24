@@ -39,7 +39,7 @@ If your planning LLM and coding agent have similar costs and context behavior, y
 5. Add `docs/collaboration.md` if this is a group repo or overlapping branch work is likely.
 6. Bootstrap the project with a coding-agent handoff.
 7. Repeat the main loop: plan work -> generate handoff -> implement -> validate -> update docs -> final report -> QA -> merge, patch, revise, or stop.
-7. Close out campaigns, clean stale context from the hot path, and start a new chat for the next phase when useful.
+8. Close out campaigns, clean stale context from the hot path, and start a new chat for the next phase when useful.
 
 Most time is spent in the implementation loop, not setup.
 
