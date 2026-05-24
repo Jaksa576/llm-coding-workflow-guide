@@ -59,7 +59,7 @@
 <a data-nav data-level="2" href="#minimal-llm-agent-handoff-shape">Minimal LLM agent handoff shape</a>
 <a data-nav data-level="2" href="#standard-repo-docs">Standard repo docs</a>
 <a data-nav data-level="2" href="#optional-codex-worktrees">Optional Codex worktrees</a>
-<a data-nav data-level="2" href="#powershell-cheat-sheet">PowerShell cheat sheet</a>
+<a data-nav data-level="2" href="#terminal-cheat-sheet">Terminal cheat sheet</a>
 <a data-nav data-level="2" href="#key-terms">Key terms</a>
 <a data-nav data-level="2" href="#prompt-library-and-placeholders">Prompt library and placeholders</a>
 </details></nav>
@@ -1019,7 +1019,8 @@ if (-not [string]::IsNullOrWhiteSpace($InstallCommand)) {
 }
 
 Write-Host &#x27;Codex environment setup complete.&#x27;</code></pre></div>
-<h2 id="powershell-cheat-sheet"><a class="heading-anchor" href="#powershell-cheat-sheet">#</a>PowerShell cheat sheet</h2>
+<h2 id="terminal-cheat-sheet"><a class="heading-anchor" href="#terminal-cheat-sheet">#</a>Terminal cheat sheet</h2>
+<p>These commands are written for a Windows-native PowerShell terminal. If a project uses a different shell, adapt the path and process-management syntax instead of assuming WSL.</p>
 <h3 id="navigation"><a class="heading-anchor" href="#navigation">#</a>Navigation</h3>
 <div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-28">Copy</button></div><pre><code id="code-28">Set-Location C:\Code\{{Project folder}}
 Get-ChildItem
@@ -1039,10 +1040,23 @@ git push -u origin {{Branch name}}
 <h3 id="local-development"><a class="heading-anchor" href="#local-development">#</a>Local development</h3>
 <div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-31">Copy</button></div><pre><code id="code-31">npm install
 npm run dev
+# Keep this terminal open while the local app runs.
+# To stop the local dev server, press Ctrl+C in this terminal.
+# If PowerShell asks for confirmation, type Y and press Enter.
 npm test
 npm run build</code></pre></div>
+<h3 id="close-a-stuck-local-dev-server"><a class="heading-anchor" href="#close-a-stuck-local-dev-server">#</a>Close a stuck local dev server</h3>
+<p>Use this only when <code>Ctrl+C</code> did not close the dev server. Replace the port with the port shown by the dev server, such as <code>3000</code>, <code>5173</code>, or <code>8080</code>.</p>
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-32">Copy</button></div><pre><code id="code-32">$port = 5173
+$devServer = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+if ($devServer) {
+  Get-Process -Id $devServer.OwningProcess
+  Stop-Process -Id $devServer.OwningProcess -Force
+} else {
+  Write-Host &quot;No dev server is listening on port $port.&quot;
+}</code></pre></div>
 <h3 id="clean-generated-files"><a class="heading-anchor" href="#clean-generated-files">#</a>Clean generated files</h3>
-<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-32">Copy</button></div><pre><code id="code-32">Remove-Item -Recurse -Force .next,node_modules,coverage,playwright-report,test-results -ErrorAction SilentlyContinue</code></pre></div>
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-33">Copy</button></div><pre><code id="code-33">Remove-Item -Recurse -Force .next,node_modules,coverage,playwright-report,test-results -ErrorAction SilentlyContinue</code></pre></div>
 <h2 id="key-terms"><a class="heading-anchor" href="#key-terms">#</a>Key terms</h2>
 <ul>
 <li><strong><span class="term" tabindex="0" data-tip="The conversational model used for strategy, planning, QA triage, and handoff generation.">Planning LLM</span>:</strong> The conversational model used for strategy, planning, QA triage, and handoff generation.</li>
