@@ -18,10 +18,9 @@
 <p class="nav-status" id="navStatus" aria-live="polite">Showing all sections</p>
 <nav id="nav"><details class="nav-group" data-nav-group="Start here" open><summary>Start here</summary>
 <a data-nav data-level="1" href="#llm-coding-workflow-guide">LLM Coding Workflow Guide</a>
-<a data-nav data-level="2" href="#design-assumption">Design assumption</a>
-<a data-nav data-level="2" href="#purpose">Purpose</a>
-<a data-nav data-level="2" href="#why-this-workflow-works">Why this workflow works</a>
-<a data-nav data-level="2" href="#quick-start">Quick start</a>
+<a data-nav data-level="2" href="#what-this-guide-is-for">What this guide is for</a>
+<a data-nav data-level="2" href="#why-the-split-works">Why the split works</a>
+<a data-nav data-level="2" href="#workflow-at-a-glance">Workflow at a glance</a>
 </details>
 <details class="nav-group" data-nav-group="One-time setup"><summary>One-time setup</summary>
 <a data-nav data-level="2" href="#stage-0-create-the-repo-and-local-workspace">Stage 0 - Create the repo and local workspace</a>
@@ -50,6 +49,7 @@
 <details class="nav-group" data-nav-group="Reference material"><summary>Reference material</summary>
 <a data-nav data-level="1" href="#reference-material">Reference material</a>
 <a data-nav data-level="2" href="#lightweight-issue-and-pr-tracking">Lightweight Issue and PR tracking</a>
+<a data-nav data-level="2" href="#group-repo-mode">Group repo mode</a>
 <a data-nav data-level="2" href="#keep-repo-docs-fresh">Keep repo docs fresh</a>
 <a data-nav data-level="2" href="#documentation-delta">Documentation delta</a>
 <a data-nav data-level="2" href="#token-efficient-repo-helpers">Token-efficient repo helpers</a>
@@ -68,60 +68,35 @@
 <main class="content" id="content">
 <div class="callout"><strong>Generated guide:</strong> This HTML guide is generated from the Markdown source by GitHub Actions.</div>
 <h1 id="llm-coding-workflow-guide"><a class="heading-anchor" href="#llm-coding-workflow-guide">#</a>LLM Coding Workflow Guide</h1>
-<p>A step-by-step operating guide for using ChatGPT as a planning/control partner and Codex as a coding agent to create, deploy, and maintain software projects.</p>
-<p>Current default setup: <strong>ChatGPT for planning</strong> and <strong>Codex for implementation</strong>. This workflow is intentionally optimized for a two-context model: use ChatGPT for product thinking, planning, documentation, QA decisions, and lean handoff generation; use Codex for repo-grounded implementation, validation, documentation updates, commits, and final reports.</p>
-<p>The split matters for two reasons. First, planning and implementation may have different token, cost, latency, or workflow constraints, so the guide keeps coding-agent handoffs lean instead of pushing all planning context into every implementation run. Second, even when the economics are similar, separating planning context from execution context keeps decisions cleaner, makes work easier to resume, and prevents the coding agent from being overloaded with stale or irrelevant discussion.</p>
-<p>If your planning LLM and coding agent have similar costs and context behavior, you can streamline some planning steps for small tasks. The durable parts of the workflow are still useful: source-of-truth repo docs, explicit acceptance criteria, reviewable slices, documentation deltas, QA decisions, and final implementation reports.</p>
-<h2 id="design-assumption"><a class="heading-anchor" href="#design-assumption">#</a>Design assumption</h2>
-<p>This guide is built around a planning LLM plus coding-agent workflow, with ChatGPT and Codex as the default tools. It assumes planning context and execution context should usually stay separate.</p>
-<p>That separation is useful for two reasons:</p>
-<ul>
-<li><strong>Token and workflow efficiency:</strong> keep exploratory planning, product decisions, and QA reasoning in ChatGPT; send Codex only the task-specific context it needs to implement.</li>
-<li><strong>Context hygiene:</strong> keep strategy, roadmap, and decision-making separate from repo execution so Codex can work from concise docs, clear scope, and current source-of-truth files.</li>
-</ul>
-<p>If your tools make planning and execution equally cheap and equally context-rich, you can collapse some intermediate planning steps for small tasks. Do not collapse the source-of-truth docs, acceptance criteria, validation expectations, documentation delta, or final report loop unless the project is truly disposable.</p>
-<h2 id="purpose"><a class="heading-anchor" href="#purpose">#</a>Purpose</h2>
-<p>This document helps you create a consistent autonomous-coding infrastructure with minimal manual overhead.</p>
-<p>The workflow assumes:</p>
-<ul>
-<li>You own product direction and final decisions.</li>
-<li>ChatGPT project turns ideas into product plans, repo docs, campaigns, QA decisions, and Codex handoffs.</li>
-<li>Codex LLM agent implements against the local repo, validates work, updates docs, commits, and reports back.</li>
-<li>GitHub and repo docs are the durable source of truth.</li>
-<li>Windows + PowerShell is the default local environment unless explicitly changed.</li>
-</ul>
-<p>The goal is not to create perfect prompts. The goal is to create a repeatable system where every project starts with the same setup, the same documentation structure, and the same implementation loop.</p>
-<h2 id="why-this-workflow-works"><a class="heading-anchor" href="#why-this-workflow-works">#</a>Why this workflow works</h2>
-<p>This workflow gives a hobbyist a lightweight version of a professional software process without requiring a professional software team. The core idea is <strong>controlled autonomy</strong>: LLMs do the repetitive planning, coding, documentation, and QA-support work, while the user keeps ownership of product direction, judgment, and final approval.</p>
-<p>It works because responsibilities are separated:</p>
-<ul>
-<li>The user owns the idea, roadmap judgment, QA judgment, and merge decisions.</li>
-<li>ChatGPT turns rough intent into plans, campaign docs, QA triage, and coding-agent handoffs.</li>
-<li>Codex implements against the local repo, validates work, updates docs, commits, and reports back.</li>
-<li>The GitHub repo and project docs remain the durable source of truth.</li>
-</ul>
-<p>This is strongest for hobbyists and solo builders who want to build real software with heavy LLM assistance while staying in control. It is less useful for tiny throwaway scripts, pure no-code app generation, or high-stakes production systems that need professional engineering review.</p>
-<p>It is also a context-routing strategy: ChatGPT carries the broader planning conversation, while Codex receives only the current repo-grounded task, acceptance criteria, validation expectations, and documentation delta.</p>
-<p>The main tradeoff is setup overhead. The workflow adds structure so later implementation becomes easier to resume, safer to automate, and less dependent on chat memory.</p>
-<h2 id="quick-start"><a class="heading-anchor" href="#quick-start">#</a>Quick start</h2>
+<p>Use this guide to build software with a planning LLM plus a repo-based coding agent.</p>
+<p>In five seconds:</p>
+<ol>
+<li>ChatGPT helps plan the work.</li>
+<li>The GitHub repo and repo docs are the source of truth.</li>
+<li>The coding agent implements one clear slice at a time.</li>
+<li>The user reviews, QA checks, and decides whether to merge, patch, revise, or stop.</li>
+<li>The loop repeats through campaigns, slices, patches, and docs updates.</li>
+</ol>
+<img class="workflow-diagram" src="llm_coding_workflow_diagram.png" alt="LLM Coding Workflow"/>
+<h2 id="what-this-guide-is-for"><a class="heading-anchor" href="#what-this-guide-is-for">#</a>What this guide is for</h2>
+<p>This workflow is for hobbyist and solo builders who want real software projects without losing control to the coding agent. It also scales to small group repos by adding Issues, Draft PRs, branch ownership, overlap checks, and clear review points.</p>
+<p>The default setup is <strong>ChatGPT for planning</strong> and <strong>Codex or another LLM coding agent for implementation</strong>. Windows-native PowerShell examples are used unless a project says otherwise.</p>
+<p>The goal is not to create perfect prompts. The goal is to create a repeatable system where projects use the same source-of-truth docs, reviewable implementation loop, validation expectations, documentation deltas, and QA decision points.</p>
+<h2 id="why-the-split-works"><a class="heading-anchor" href="#why-the-split-works">#</a>Why the split works</h2>
+<p>Keep planning context and execution context separate. ChatGPT carries product thinking, roadmap decisions, QA triage, and handoff generation. The coding agent receives only the current task, source-of-truth docs, acceptance criteria, validation expectations, and documentation delta.</p>
+<p>That separation keeps handoffs lean, reduces stale context, and makes projects easier to resume across chats, branches, devices, and collaborators.</p>
+<p>If your planning LLM and coding agent have similar costs and context behavior, you can streamline some planning steps for small tasks. Do not collapse source-of-truth docs, acceptance criteria, validation expectations, documentation delta, or the final report loop unless the project is truly disposable.</p>
+<h2 id="workflow-at-a-glance"><a class="heading-anchor" href="#workflow-at-a-glance">#</a>Workflow at a glance</h2>
 <ol>
 <li>Create the GitHub repo and local Windows workspace.</li>
-<li>Create the ChatGPT Project and add starter instructions.</li>
-<li>Add the compact workflow primer.</li>
-<li>Connect or confirm GitHub repo access for source-of-truth checks.</li>
-<li>Configure the Codex project and local environment.</li>
-<li>Define the project with ChatGPT.</li>
-<li>Generate and install project-specific ChatGPT instructions.</li>
-<li>Generate the core repo docs.</li>
-<li>Copy the docs into the local repo and commit/push.</li>
-<li><span class="term" tabindex="0" data-tip="The first implementation run that creates the working shell, validation path, and initial deploy/run setup.">Bootstrap</span> the project with Codex.</li>
-<li>Review the bootstrap and first deploy/run.</li>
-<li>Start the main implementation loop.</li>
-<li>Repeat: plan work -&gt; generate handoff -&gt; implement -&gt; docs update -&gt; QA -&gt; merge or patch.</li>
-<li>Close out campaigns and start a new chat for the next phase.</li>
+<li>Create the ChatGPT Project and add the compact workflow primer.</li>
+<li>Configure GitHub source-of-truth access and the local coding-agent project.</li>
+<li>Define the project, generate app-specific instructions, and create core repo docs.</li>
+<li><span class="term" tabindex="0" data-tip="The first implementation run that creates the working shell, validation path, and initial deploy/run setup.">Bootstrap</span> the project with a coding-agent handoff.</li>
+<li>Repeat the main loop: plan work -&gt; generate handoff -&gt; implement -&gt; validate -&gt; update docs -&gt; final report -&gt; QA -&gt; merge, patch, revise, or stop.</li>
+<li>Close out campaigns, clean stale context from the hot path, and start a new chat for the next phase when useful.</li>
 </ol>
 <p>Most time is spent in the implementation loop, not setup.</p>
-<img class="workflow-diagram" src="llm_coding_workflow_diagram.png" alt="LLM Coding Workflow"/>
 <h2 id="stage-0-create-the-repo-and-local-workspace"><a class="heading-anchor" href="#stage-0-create-the-repo-and-local-workspace">#</a>Stage 0 - Create the repo and local workspace</h2>
 <p>Create a GitHub repository for the project. Use <code>main</code> as the default branch. Choose public or private based on the project. Add a basic <code>.gitignore</code> if you already know the stack; otherwise Codex can add one during bootstrap.</p>
 <p>Clone the repo to your Windows machine. Record the project name, GitHub repo URL, local repo path, target branch, and whether the repo is public or private.</p>
@@ -143,6 +118,8 @@ I use ChatGPT for planning and Codex or another coding agent for implementation.
 Default environment: Windows-native workflow with PowerShell. Do not assume WSL unless I explicitly request it.
 
 When current repo state matters, inspect the project repo through the configured GitHub connector at the target branch first. If connector access is unavailable, ask me to provide only the smallest specific missing file or input. Do not rely on memory or prior chat assumptions.
+
+For group repos, require Issues and Draft PRs for meaningful work, confirm branch ownership before implementation, and stop before editing if active work appears to overlap another branch.
 
 Prefer step-by-step guidance, lean Codex handoffs, reviewable slices, clear stop conditions, documentation delta requirements, and clear final reports from coding agents.</code></pre></div>
 <h2 id="stage-1a-add-the-compact-workflow-primer"><a class="heading-anchor" href="#stage-1a-add-the-compact-workflow-primer">#</a>Stage 1A - Add the compact workflow primer</h2>
@@ -172,6 +149,7 @@ Please verify whether you can inspect these files from the configured GitHub rep
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
+- docs/collaboration.md when group work is active
 - active docs/campaigns/*.md if relevant
 
 Rules:
@@ -292,12 +270,14 @@ Environment assumptions:
 - Codex or equivalent coding agent for implementation
 - GitHub and repo docs are the durable source of truth
 
-Please draft these files:
+Please draft these core files:
 1. AGENTS.md
 2. docs/product.md
 3. docs/architecture.md
 4. docs/roadmap.md
 5. docs/current-task.md
+
+If this will be a group repo, also draft `docs/collaboration.md` with branch, Issue, Draft PR, review, and overlap-check expectations.
 
 Requirements:
 - Keep each file concise and useful for LLM-assisted development.
@@ -308,6 +288,7 @@ Requirements:
 - Include the expectation that Codex updates docs/current-task.md after every implementation.
 - For projects using worktrees, include that branch work must be pushed to the remote repo before final report.
 - If the repo has standard setup, validation, or branch-verification scripts, document them in `AGENTS.md` instead of repeating those commands in every handoff.
+- For group repos, keep collaboration rules in `docs/collaboration.md` instead of burying them in chat history.
 
 Output each file in a separate fenced markdown block with the file path as the heading.</code></pre></div>
 <h2 id="stage-6-add-the-core-docs-to-the-repo"><a class="heading-anchor" href="#stage-6-add-the-core-docs-to-the-repo">#</a>Stage 6 - Add the core docs to the repo</h2>
@@ -397,6 +378,7 @@ Please re-establish context by inspecting repo docs at the target branch:
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
+- docs/collaboration.md when group work is active
 - active docs/campaigns/*.md if relevant
 
 Rules:
@@ -433,6 +415,7 @@ Please inspect the configured GitHub repo at the target branch, or ask me for on
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
+- docs/collaboration.md when group work is active
 - active docs/campaigns/*.md if relevant
 
 First, recommend the Issue/PR tracking level for this work:
@@ -448,6 +431,8 @@ Use this rule:
 - Group work: Issue + Draft PR required.
 
 If Issue/PR tracking is recommended or required, include the Issue scope and Draft PR expectations inside the normal plan. Do not create a separate Issue/PR decision workflow.
+
+For group work, also include owner, branch, focused files/docs, files/docs or systems to avoid, reviewer expectations, and where durable discussion should be recorded.
 
 If Work mode is CAMPAIGN, produce a campaign document with:
 1. objective and target state
@@ -496,6 +481,7 @@ Please inspect the configured GitHub repo at the target branch, or ask me for on
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
+- docs/collaboration.md when group work is active
 - the active campaign doc if applicable
 
 Then create a lean LLM agent-ready handoff containing only what LLM agent needs for this task.
@@ -508,7 +494,7 @@ If Issue/PR tracking is in use, include:
 - files/docs/systems to avoid
 - Draft PR expectations
 
-When Issue/PR tracking is in use, the readiness gate must also require LLM agent to check active Issues, PRs, and related remote branches before coding. If another active branch appears to touch the same files or systems, LLM agent must stop and report the possible overlap before editing.
+When Issue/PR tracking is in use, the readiness gate must also require LLM agent to check active Issues, PRs, and related remote branches before coding. If another active branch appears to touch the same files or systems, LLM agent must stop and report the possible overlap before editing. For group work, the readiness gate should also confirm the linked Issue or Draft PR, branch owner, focused files/docs, files/docs to avoid, and whether `docs/collaboration.md` adds project-specific rules.
 
 A normal handoff should include:
 - goal
@@ -540,6 +526,7 @@ Rules:
 <li>Start a fresh LLM agent thread/worktree for each campaign slice or standalone implementation branch.</li>
 <li>Reuse the same branch/thread only for focused patch corrections to the same implementation.</li>
 <li>Paste the handoff.</li>
+<li>For group work, have LLM agent confirm the linked Issue or Draft PR, branch owner, and overlap check before editing. Do not implement directly on <code>main</code> unless the repo explicitly allows it for this task.</li>
 <li>Let LLM agent inspect docs, implement, validate, update docs, commit, push, and verify the branch is pushed when a repo helper exists.</li>
 <li>If Issue/PR tracking is in use, let LLM agent open or update the Draft PR when possible and include PR status in the final report.</li>
 <li>Copy LLM agent&#x27;s final report back into ChatGPT.</li>
@@ -550,6 +537,7 @@ Rules:
 <li>commit</li>
 <li>pushed remote branch, when work was done on a branch or worktree</li>
 <li>Draft PR status, when Issue/PR tracking is in use</li>
+<li>owner and overlap-check result, when group work is active</li>
 <li>branch-push verification result, when the repo provides a verification script</li>
 <li>files changed</li>
 <li>validation results</li>
@@ -640,6 +628,7 @@ Please do a fresh source-of-truth check using repo docs at the target branch. If
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
+- docs/collaboration.md when group work is active
 - active campaign doc if relevant
 
 Then recommend:
@@ -664,11 +653,25 @@ Then recommend:
 <li>Issue = active work contract.</li>
 <li>Draft PR = active branch and review record.</li>
 <li>Discord/chat = discussion, not durable truth.</li>
+<li><code>docs/collaboration.md</code> = reusable group rules when branch ownership, review expectations, or overlap checks need to be explicit.</li>
 </ul>
+<h2 id="group-repo-mode"><a class="heading-anchor" href="#group-repo-mode">#</a>Group repo mode</h2>
+<p>Group repo mode is the same core workflow with stricter coordination. Use it when another person, another coding agent, or another active branch might touch the same files, features, docs, or deployment path.</p>
+<p>For group work:</p>
+<ul>
+<li>Use an Issue plus Draft PR for each meaningful work item.</li>
+<li>Give each work item an owner, branch, scope, focused files/docs, files/docs to avoid, validation expectations, and done-when criteria.</li>
+<li>Do not implement directly on <code>main</code> unless the repo explicitly allows that for the specific task.</li>
+<li>Before coding, check active Issues, PRs, and related remote branches for overlap.</li>
+<li>If another active branch appears to touch the same files or systems, stop and coordinate before editing.</li>
+<li>Use Discord or chat for discussion, but record durable decisions in Issues, PRs, or repo docs.</li>
+<li>Add <code>docs/collaboration.md</code> when collaboration rules, ownership, review expectations, or branch conventions need to be reusable across the project.</li>
+</ul>
+<p>For solo projects, keep this lightweight. Use Issue/PR tracking for multi-day branches, risky changes, worktrees, project switching, or anything you may need to review later. Skip it for tiny same-session patches.</p>
 <h2 id="keep-repo-docs-fresh"><a class="heading-anchor" href="#keep-repo-docs-fresh">#</a>Keep repo docs fresh</h2>
 <p>Use <code>docs/current-task.md</code> as the active work pointer for current status and next action.</p>
 <p>LLM agent should update <code>docs/current-task.md</code> after every implementation. Update campaign docs when slice status changes. Update <code>docs/architecture.md</code> or <code>docs/roadmap.md</code> only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.</p>
-<p>ChatGPT should inspect repo docs at the target branch whenever current state matters. Chat memory and prior final reports are orientation only; repo docs are authoritative.</p>
+<p>ChatGPT should inspect repo docs at the target branch whenever current state matters. For group work, active Issues, PRs, related remote branches, and <code>docs/collaboration.md</code> are part of the current-state check. Chat memory and prior final reports are orientation only; repo docs are authoritative.</p>
 <p>Golden rules:</p>
 <ol>
 <li>The repo is durable memory. Chats are temporary.</li>
@@ -802,6 +805,7 @@ Read first from repo docs at the target branch:
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
+- docs/collaboration.md when group work is active
 - active docs/campaigns/*.md if relevant
 - recent git history
 
@@ -843,6 +847,7 @@ Please inspect repo docs at the target branch for the latest versions of:
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
+- docs/collaboration.md when group work is active
 - active docs/campaigns/*.md if relevant
 
 Rules:
@@ -888,6 +893,7 @@ Read first:
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
+- docs/collaboration.md, if group work is active
 - {{Active campaign doc, if applicable}}
 
 Readiness gate:
@@ -928,7 +934,9 @@ Final report:
 <li><code>docs/architecture.md</code> defines the technical approach, important routes/services/data flows, deployment assumptions, and constraints. Update it when architecture changes.</li>
 <li><code>docs/roadmap.md</code> defines milestones, sequencing, campaign backlog, and deferred work. Update it when scope or order changes.</li>
 <li><code>docs/current-task.md</code> defines current status and the next action. Update it after every implementation.</li>
+<li><code>docs/collaboration.md</code> defines branch ownership, Issue/PR, review, and overlap-check expectations when group work is active. Keep it optional for solo repos.</li>
 <li><code>docs/campaigns/*.md</code> tracks active multi-slice efforts. Update the active campaign doc when slice status, acceptance criteria, or follow-up backlog changes.</li>
+<li><code>docs/design/*.md</code> can hold active design notes for complex product, UX, data, or architecture decisions. Use it only when a decision is too large for the hot-path docs.</li>
 </ul>
 <h2 id="optional-codex-worktrees"><a class="heading-anchor" href="#optional-codex-worktrees">#</a>Optional Codex worktrees</h2>
 <p>Use worktrees only when they reduce friction. They are useful for isolated branches, parallel slices, and safer experimentation. They are unnecessary for tiny projects or single-threaded work where a normal branch is simpler.</p>
