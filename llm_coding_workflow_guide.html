@@ -1046,17 +1046,19 @@ npm run dev
 npm test
 npm run build</code></pre></div>
 <h3 id="close-a-stuck-local-dev-server"><a class="heading-anchor" href="#close-a-stuck-local-dev-server">#</a>Close a stuck local dev server</h3>
-<p>Use this only when <code>Ctrl+C</code> did not close the dev server. Replace the port with the port shown by the dev server, such as <code>3000</code>, <code>5173</code>, or <code>8080</code>.</p>
-<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-32">Copy</button></div><pre><code id="code-32">$port = 5173
-$devServer = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-if ($devServer) {
-  Get-Process -Id $devServer.OwningProcess
-  Stop-Process -Id $devServer.OwningProcess -Force
-} else {
-  Write-Host &quot;No dev server is listening on port $port.&quot;
-}</code></pre></div>
+<p>Start simple. Most local dev servers close from the same terminal where you ran <code>npm run dev</code>.</p>
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-32">Copy</button></div><pre><code id="code-32"># In the terminal running the dev server:
+Ctrl+C
+# If PowerShell asks for confirmation, type Y and press Enter.</code></pre></div>
+<p>If that terminal is gone or stuck, check whether Node is still running:</p>
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-33">Copy</button></div><pre><code id="code-33">Get-Process node</code></pre></div>
+<p>If you only have one local dev server running, stop all Node processes:</p>
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-34">Copy</button></div><pre><code id="code-34">Stop-Process -Name node -Force</code></pre></div>
+<p>If you have multiple Node processes and want to stop only one, use the <code>Id</code> from <code>Get-Process node</code>:</p>
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-35">Copy</button></div><pre><code id="code-35">Stop-Process -Id {{Node process Id}} -Force</code></pre></div>
+<p>After stopping it, run <code>npm run dev</code> again from the project folder when you want to restart the local app.</p>
 <h3 id="clean-generated-files"><a class="heading-anchor" href="#clean-generated-files">#</a>Clean generated files</h3>
-<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-33">Copy</button></div><pre><code id="code-33">Remove-Item -Recurse -Force .next,node_modules,coverage,playwright-report,test-results -ErrorAction SilentlyContinue</code></pre></div>
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button class="copy-btn" type="button" data-copy-target="code-36">Copy</button></div><pre><code id="code-36">Remove-Item -Recurse -Force .next,node_modules,coverage,playwright-report,test-results -ErrorAction SilentlyContinue</code></pre></div>
 <h2 id="key-terms"><a class="heading-anchor" href="#key-terms">#</a>Key terms</h2>
 <ul>
 <li><strong><span class="term" tabindex="0" data-tip="The conversational model used for strategy, planning, QA triage, and handoff generation.">Planning LLM</span>:</strong> The conversational model used for strategy, planning, QA triage, and handoff generation.</li>
