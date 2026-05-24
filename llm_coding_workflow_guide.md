@@ -1197,18 +1197,33 @@ npm run build
 
 ### Close a stuck local dev server
 
-Use this only when `Ctrl+C` did not close the dev server. Replace the port with the port shown by the dev server, such as `3000`, `5173`, or `8080`.
+Start simple. Most local dev servers close from the same terminal where you ran `npm run dev`.
 
 ```powershell
-$port = 5173
-$devServer = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-if ($devServer) {
-  Get-Process -Id $devServer.OwningProcess
-  Stop-Process -Id $devServer.OwningProcess -Force
-} else {
-  Write-Host "No dev server is listening on port $port."
-}
+# In the terminal running the dev server:
+Ctrl+C
+# If PowerShell asks for confirmation, type Y and press Enter.
 ```
+
+If that terminal is gone or stuck, check whether Node is still running:
+
+```powershell
+Get-Process node
+```
+
+If you only have one local dev server running, stop all Node processes:
+
+```powershell
+Stop-Process -Name node -Force
+```
+
+If you have multiple Node processes and want to stop only one, use the `Id` from `Get-Process node`:
+
+```powershell
+Stop-Process -Id {{Node process Id}} -Force
+```
+
+After stopping it, run `npm run dev` again from the project folder when you want to restart the local app.
 
 ### Clean generated files
 
