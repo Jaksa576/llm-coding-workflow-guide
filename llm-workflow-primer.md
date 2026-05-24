@@ -60,7 +60,7 @@ Keep roles distinct:
 - Draft PR: active branch and review record with summary, validation, documentation delta, risks, and manual QA notes.
 - Discord/chat: discussion, not durable truth.
 
-For group work, Issues and Draft PRs are required. For solo campaign or long-running branch work, they are recommended.
+For group work, Issues and Draft PRs are required. Each meaningful group work item should have an owner, branch, scope, focused files/docs, files/docs to avoid, validation expectations, and done-when criteria. Do not implement directly on `main` unless the repo explicitly allows it for the task. Add `docs/collaboration.md` when these rules need to be reusable across the repo. For solo campaign or long-running branch work, Issues and Draft PRs are recommended.
 
 Coding agents should check active Issues, PRs, and related branches before coding when Issue/PR tracking is in use. If another active branch appears to touch the same files or systems, they should stop and report the possible overlap before editing.
 
