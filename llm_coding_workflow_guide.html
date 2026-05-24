@@ -49,6 +49,7 @@
 </details>
 <details class="nav-group" data-nav-group="Reference material"><summary>Reference material</summary>
 <a data-nav data-level="1" href="#reference-material">Reference material</a>
+<a data-nav data-level="2" href="#lightweight-issue-and-pr-tracking">Lightweight Issue and PR tracking</a>
 <a data-nav data-level="2" href="#keep-repo-docs-fresh">Keep repo docs fresh</a>
 <a data-nav data-level="2" href="#documentation-delta">Documentation delta</a>
 <a data-nav data-level="2" href="#token-efficient-repo-helpers">Token-efficient repo helpers</a>
@@ -434,6 +435,20 @@ Please inspect the configured GitHub repo at the target branch, or ask me for on
 - docs/current-task.md
 - active docs/campaigns/*.md if relevant
 
+First, recommend the Issue/PR tracking level for this work:
+- not needed
+- optional
+- recommended
+- required
+
+Use this rule:
+- Tiny same-session patch: no Issue/PR needed.
+- Small solo slice: optional.
+- Campaign, multi-day branch, worktree, project switching, risky architecture/product change, or group work: Issue + Draft PR recommended.
+- Group work: Issue + Draft PR required.
+
+If Issue/PR tracking is recommended or required, include the Issue scope and Draft PR expectations inside the normal plan. Do not create a separate Issue/PR decision workflow.
+
 If Work mode is CAMPAIGN, produce a campaign document with:
 1. objective and target state
 2. current state and source-of-truth notes
@@ -485,6 +500,16 @@ Please inspect the configured GitHub repo at the target branch, or ask me for on
 
 Then create a lean LLM agent-ready handoff containing only what LLM agent needs for this task.
 
+If Issue/PR tracking is in use, include:
+- owner
+- linked Issue or Issue draft
+- branch
+- focused files/docs
+- files/docs/systems to avoid
+- Draft PR expectations
+
+When Issue/PR tracking is in use, the readiness gate must also require LLM agent to check active Issues, PRs, and related remote branches before coding. If another active branch appears to touch the same files or systems, LLM agent must stop and report the possible overlap before editing.
+
 A normal handoff should include:
 - goal
 - source-of-truth docs to inspect
@@ -507,7 +532,8 @@ Rules:
 - Keep the handoff copy-paste ready.
 - Prefer repo-owned standard commands from `AGENTS.md`, package scripts, or `scripts/` for setup, validation, and branch verification.
 - If the repo provides a branch-push verification script and the work uses a worktree, include it in validation or final-report expectations.
-- Do not create extra active-context files just to repeat the handoff; the handoff is the active execution packet and repo docs are durable truth.</code></pre></div>
+- Do not create extra active-context files just to repeat the handoff; the handoff is the active execution packet and repo docs are durable truth.
+- Do not add a standalone Issue/PR decision prompt; Issue/PR tracking is conditional context inside the normal handoff.</code></pre></div>
 <h2 id="loop-step-d-let-llm-agent-implement"><a class="heading-anchor" href="#loop-step-d-let-llm-agent-implement">#</a>Loop Step D - Let LLM agent implement</h2>
 <p>In LLM agent:</p>
 <ol>
@@ -515,6 +541,7 @@ Rules:
 <li>Reuse the same branch/thread only for focused patch corrections to the same implementation.</li>
 <li>Paste the handoff.</li>
 <li>Let LLM agent inspect docs, implement, validate, update docs, commit, push, and verify the branch is pushed when a repo helper exists.</li>
+<li>If Issue/PR tracking is in use, let LLM agent open or update the Draft PR when possible and include PR status in the final report.</li>
 <li>Copy LLM agent&#x27;s final report back into ChatGPT.</li>
 </ol>
 <p>A good LLM agent final report must include:</p>
@@ -522,6 +549,7 @@ Rules:
 <li>branch</li>
 <li>commit</li>
 <li>pushed remote branch, when work was done on a branch or worktree</li>
+<li>Draft PR status, when Issue/PR tracking is in use</li>
 <li>branch-push verification result, when the repo provides a verification script</li>
 <li>files changed</li>
 <li>validation results</li>
@@ -549,9 +577,10 @@ Please do the following:
 2. clean up my QA notes into clear issues
 3. classify each issue as blocker, follow-up patch, campaign backlog, later, or reject
 4. identify what should change before merge, if anything
-5. tell me exactly what to manually QA
-6. recommend one of: merge, narrow patch, revise plan/campaign, or abandon branch
-7. if a patch is needed, create a lean LLM agent-ready patch handoff
+5. if Issue/PR tracking is in use, identify what should be updated in the Issue or PR before review, patch, merge, or closeout
+6. tell me exactly what to manually QA
+7. recommend one of: merge, narrow patch, revise plan/campaign, or abandon branch
+8. if a patch is needed, create a lean LLM agent-ready patch handoff
 </code></pre></div>
 <h2 id="loop-step-f-patch-when-needed"><a class="heading-anchor" href="#loop-step-f-patch-when-needed">#</a>Loop Step F - <span class="term" tabindex="0" data-tip="A narrow correction to a specific branch or issue.">Patch</span> when needed</h2>
 <div class="code-card"><div class="code-toolbar"><span>md</span><button class="copy-btn" type="button" data-copy-target="code-14">Copy</button></div><pre><code id="code-14">Create a narrow LLM agent-ready patch handoff.
@@ -618,11 +647,24 @@ Then recommend:
 2. what docs should be updated
 3. what old context should be archived or removed from the hot path
 4. what docs/current-task.md should say next
-5. whether the next step should be a patch, new campaign, standalone slice, production hardening, or pause
-6. whether I should start a new ChatGPT chat for the next phase
-7. a LLM agent-ready docs-update handoff if needed</code></pre></div>
+5. whether any Issue or PR should be closed, updated, left as draft, or marked ready for review
+6. whether the next step should be a patch, new campaign, standalone slice, production hardening, or pause
+7. whether I should start a new ChatGPT chat for the next phase
+8. a LLM agent-ready docs-update handoff if needed</code></pre></div>
 <h1 id="reference-material"><a class="heading-anchor" href="#reference-material">#</a>Reference material</h1>
 <p>Use this section when the main workflow points you to supporting material. It is deliberately shorter than the old appendices: the main workflow stays actionable, and reference material stays available without becoming a second manual.</p>
+<h2 id="lightweight-issue-and-pr-tracking"><a class="heading-anchor" href="#lightweight-issue-and-pr-tracking">#</a>Lightweight Issue and PR tracking</h2>
+<p>Issues and PRs are optional tracking tools, not the workflow. Use them when they make the existing loop easier to coordinate, review, or resume.</p>
+<p>Skip Issue/PR tracking for tiny same-session patches. Use it for campaigns, multi-day branches, worktrees, project switching, risky architecture or product changes, and group work. For solo campaigns or long-running branch work, Issue + Draft PR tracking is recommended. For group work, Issues and Draft PRs are required.</p>
+<p>Keep the roles distinct:</p>
+<ul>
+<li>Roadmap = strategic sequence and deferred work.</li>
+<li><code>docs/current-task.md</code> = main current project pointer.</li>
+<li><span class="term" tabindex="0" data-tip="A large swath of related work broken into reviewable slices.">Campaign</span> doc = multi-slice plan and status.</li>
+<li>Issue = active work contract.</li>
+<li>Draft PR = active branch and review record.</li>
+<li>Discord/chat = discussion, not durable truth.</li>
+</ul>
 <h2 id="keep-repo-docs-fresh"><a class="heading-anchor" href="#keep-repo-docs-fresh">#</a>Keep repo docs fresh</h2>
 <p>Use <code>docs/current-task.md</code> as the active work pointer for current status and next action.</p>
 <p>LLM agent should update <code>docs/current-task.md</code> after every implementation. Update campaign docs when slice status changes. Update <code>docs/architecture.md</code> or <code>docs/roadmap.md</code> only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.</p>
