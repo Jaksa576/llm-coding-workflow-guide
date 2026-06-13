@@ -38,12 +38,12 @@ GROUPS = [
         [
             "Main implementation loop",
             "Loop Step A - Ground a new ChatGPT chat in the repo",
-            "Loop Step B - Plan the next work item",
+            "Loop Step B - Plan or refine the next GitHub Issue",
             "Loop Step C - Generate the next LLM agent handoff",
             "Loop Step D - Let LLM agent implement",
             "Loop Step E - QA and decide merge or patch",
             "Loop Step F - Patch when needed",
-            "Loop Step G - Close the campaign or phase",
+            "Loop Step G - Close the Issue, PR, or phase",
         ],
         True,
     ),
@@ -51,6 +51,9 @@ GROUPS = [
         "Reference material",
         [
             "Reference material",
+            "Issue-first backlog and PR tracking",
+            "Issue body shape",
+            "Group repo mode",
             "Keep repo docs fresh",
             "Documentation delta",
             "Token-efficient repo helpers",
@@ -61,7 +64,7 @@ GROUPS = [
             "Minimal LLM agent handoff shape",
             "Standard repo docs",
             "Optional Codex worktrees",
-            "PowerShell cheat sheet",
+            "Terminal cheat sheet",
             "Key terms",
             "Prompt library and placeholders",
         ],
@@ -74,13 +77,14 @@ TERMS = {
     "Coding agent": "The tool that works directly in the repo to edit files, run checks, commit, and push.",
     "Source-of-truth docs": "The repo docs that define current product, architecture, roadmap, and active work.",
     "Hot context": "The small set of files an agent should read for the current task.",
-    "Campaign": "A large swath of related work broken into reviewable slices.",
-    "Slice": "One independently reviewable implementation unit inside a campaign or standalone effort.",
+    "Issue": "A repo-native backlog item or implementation contract for a specific future or active work item.",
+    "Pull request": "The branch review record that implements an Issue or patch and captures validation, documentation delta, QA notes, and merge readiness.",
+    "Slice": "One independently reviewable implementation unit inside an Issue or standalone effort.",
     "Patch": "A narrow correction to a specific branch or issue.",
     "Bootstrap": "The first implementation run that creates the working shell, validation path, and initial deploy/run setup.",
     "Readiness gate": "The pre-coding check that confirms docs, branch, and scope agree.",
     "Documentation delta": "The final-report section explaining which docs changed and why.",
-    "Docs health check": "A docs-only audit to align current-task, roadmap, architecture, and campaign status.",
+    "Docs health check": "A docs-only audit to align current-task, roadmap, architecture, and Issue/PR status.",
     "Source-of-truth check": "A deliberate refresh using the latest repo docs before planning, handoffs, QA, or strategy decisions.",
     "Prompt manager": "A saved-prompt library for reusable prompts. It reduces typing, but does not replace repo docs or project instructions.",
     "Worktree": "A separate working directory connected to the same Git repo, useful for isolated branches.",
@@ -259,98 +263,68 @@ def parse_markdown(markdown: str) -> tuple[str, list[tuple[int, str, str]]]:
             i += 1
             continue
         close_list()
-        para = [line.strip()]
+        out.append(f"<p>{inline(line)}</p>")
         i += 1
-        while i < len(lines) and lines[i].strip() and not lines[i].startswith("```") and not re.match(r"^(#{1,3})\s+", lines[i]) and not re.match(r"^\s*([-*]|\d+\.)\s+", lines[i]):
-            para.append(lines[i].strip())
-            i += 1
-        rendered = inline(" ".join(para))
-        out.append(rendered if rendered.startswith("<img ") else f"<p>{rendered}</p>")
     close_list()
-    return add_terms("\n".join(out)), headings
+    return "\n".join(out), headings
 
 
-def nav_group_for(title: str, seen_reference: bool, explicit_groups: dict[str, str]) -> str:
-    if title in explicit_groups:
-        return explicit_groups[title]
-    if title.startswith("Stage "):
-        return "One-time setup"
-    if title == "Main implementation loop" or title.startswith("Loop Step "):
-        return "Implementation loop"
-    if seen_reference:
-        return "Reference material"
-    return "Start here"
+def nav(headings: list[tuple[int, str, str]]) -> str:
+    by_title = {title: (level, heading_id) for level, title, heading_id in headings}
+    assigned: set[str] = set()
+    html_parts: list[str] = []
+    for label, titles, open_default in GROUPS:
+        links: list[str] = []
+        for title in titles:
+            if title in by_title:
+                level, heading_id = by_title[title]
+                assigned.add(title)
+                cls = "nav-h2" if level == 2 else "nav-h1" if level == 1 else "nav-h3"
+                links.append(f'<a data-nav class="{cls}" href="#{heading_id}">{html.escape(title)}</a>')
+        if links:
+            open_attr = " open" if open_default else ""
+            html_parts.append(f'<details class="nav-group" data-nav-group="{html.escape(label)}"{open_attr}><summary>{html.escape(label)}</summary>{"".join(links)}</details>')
+    leftovers = [(level, title, heading_id) for level, title, heading_id in headings if title not in assigned]
+    if leftovers:
+        links = [f'<a data-nav class="nav-h{min(level,3)}" href="#{heading_id}">{html.escape(title)}</a>' for level, title, heading_id in leftovers]
+        html_parts.append(f'<details class="nav-group" data-nav-group="Other sections"><summary>Other sections</summary>{"".join(links)}</details>')
+    return "\n".join(html_parts)
 
 
-def build_nav(headings: list[tuple[int, str, str]]) -> str:
-    group_order = [(name, is_open) for name, _, is_open in GROUPS]
-    links_by_group: dict[str, list[str]] = {name: [] for name, _, _ in GROUPS}
-    explicit_groups = {title: name for name, titles, _ in GROUPS for title in titles}
-    seen_reference = False
-
-    for level, title, heading_id in headings:
-        if level > 2:
-            continue
-        if title == "Reference material":
-            seen_reference = True
-        group_name = nav_group_for(title, seen_reference, explicit_groups)
-        links_by_group.setdefault(group_name, [])
-        links_by_group[group_name].append(f'<a data-nav data-level="{level}" href="#{heading_id}">{html.escape(title)}</a>')
-
-    chunks: list[str] = []
-    for group_name, is_open in group_order:
-        group_links = links_by_group.get(group_name, [])
-        if not group_links:
-            continue
-        open_attr = " open" if is_open else ""
-        chunks.append(f'<details class="nav-group" data-nav-group="{html.escape(group_name)}"{open_attr}><summary>{html.escape(group_name)}</summary>')
-        chunks.extend(group_links)
-        chunks.append("</details>")
-    return "\n".join(chunks)
-
-
-def main() -> int:
+def render() -> None:
     markdown = MD.read_text(encoding="utf-8")
     old_html = OUT.read_text(encoding="utf-8") if OUT.exists() else ""
-    css = extract_style(old_html)
     body, headings = parse_markdown(markdown)
-    nav = build_nav(headings)
-    generated_note_html = f'<div class="callout"><strong>Generated guide:</strong> {html.escape(GENERATED_NOTE)}</div>'
-    document = f"""<!DOCTYPE html>
+    body = add_terms(body)
+    style = extract_style(old_html)
+    rendered = f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>{TITLE}</title>
-<style>
-{css}
-</style>
+<title>{html.escape(TITLE)}</title>
+<style>{style}</style>
 </head>
 <body>
 <div class="layout">
 <aside class="sidebar">
-<h1>{TITLE}</h1>
-<p class="sidebar-subtitle">Jump quickly, collapse groups, or filter sections.</p>
-<input aria-label="Filter sections" id="navSearch" placeholder="Filter sections..."/>
-<div class="nav-controls"><button id="expandNav" type="button">Expand</button><button id="collapseNav" type="button">Collapse</button><button id="clearNavSearch" type="button">Clear</button></div>
-<p class="nav-status" id="navStatus" aria-live="polite">Showing all sections</p>
-<nav id="nav">{nav}</nav>
+<h1>{html.escape(TITLE)}</h1>
+<p class="generated-note">{html.escape(GENERATED_NOTE)}</p>
+<input id="navSearch" type="search" placeholder="Filter sections" aria-label="Filter sections"/>
+<div class="nav-actions"><button id="expandNav" type="button">Expand</button><button id="collapseNav" type="button">Collapse</button><button id="clearNavSearch" type="button">Clear</button></div>
+<p id="navStatus" class="nav-status"></p>
+<nav id="nav">{nav(headings)}</nav>
 </aside>
-<main class="content" id="content">
-{generated_note_html}
+<main id="content" class="content">
 {body}
 </main>
 </div>
-<script>
-{JS}
-</script>
+<script>{JS}</script>
 </body>
 </html>
 """
-    OUT.write_text(document, encoding="utf-8")
-    print("Rendered llm_coding_workflow_guide.html")
-    return 0
+    OUT.write_text(rendered, encoding="utf-8")
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    render()
