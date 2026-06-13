@@ -26,78 +26,55 @@ Core docs to inspect:
 - `docs/roadmap.md`
 - `docs/current-task.md`
 - `docs/collaboration.md` when group work is active
-- active `docs/campaigns/*.md` files when relevant
-- active `docs/design/*.md` files when relevant
-- active GitHub Issues and PRs when work may overlap another branch or needs durable tracking
+- active `docs/design/*.md` files when a specific design decision is relevant
+- active GitHub Issues and PRs when planning, implementing, reviewing, checking overlap, or resuming work
 
-Do not rely on memory or prior chat assumptions when repo state matters. If docs conflict, call out the conflict before recommending next steps.
+Do not rely on memory or prior chat assumptions when repo state matters. If docs, Issues, or PRs conflict, call out the conflict before recommending next steps.
 
 ## Implementation loop
 
 Use the same loop for most work:
 
-1. Refresh current state from repo docs on the target branch.
-2. Plan a campaign, slice, or patch.
+1. Refresh current state from repo docs, active Issues, and active PRs when relevant.
+2. Plan or refine the next Issue, reviewable slice, or patch.
 3. Generate a lean coding-agent handoff.
-4. The coding agent implements, validates, updates docs, commits, and reports back.
+4. The coding agent implements, validates, updates docs, Issues, and PRs, commits, and reports back.
 5. The user QA reviews the preview/local result.
-6. Merge, patch, revise the campaign, or stop.
+6. Merge, patch, revise the Issue, split follow-up Issues, or stop.
 
-Use a campaign for a large swath of related work. Use a slice for one independently reviewable unit. Use a patch for a narrow correction.
+Use GitHub Issues for durable backlog items, implementation-ready work, active work contracts, and follow-ups. Use slices for independently reviewable implementation units inside an Issue or standalone effort. Use patches for narrow corrections.
 
-## Lightweight Issue and PR tracking
+## Issue-first backlog and PR tracking
 
-Issues and PRs are optional tracking tools, not a replacement for the workflow.
-
-Use Issue/PR tracking by default for campaigns, multi-day branches, worktree-based work, project switching, risky architecture/product changes, and group work. Skip it for tiny patches and same-session solo changes unless it would help.
+Issues are the default durable tracking layer for future implementation work. PRs are the active branch and review record for implementing an Issue or patch.
 
 Keep roles distinct:
 
-- Roadmap: strategic sequence and deferred work.
-- `docs/current-task.md`: main current project pointer.
-- Campaign doc: multi-slice plan and status.
-- Issue: active work contract with owner, branch, scope, focused files/docs, files/docs to avoid, done-when, validation, and expected docs updates.
+- Roadmap: strategic sequence, milestones, and broader deferred themes.
+- `docs/current-task.md`: short current project pointer, including active Issue/PR when useful.
+- Issue: specific backlog item, implementation contract, or follow-up with owner, scope, done-when, validation, and expected docs updates.
 - Draft PR: active branch and review record with summary, validation, documentation delta, risks, and manual QA notes.
 - Discord/chat: discussion, not durable truth.
 
-For group work, Issues and Draft PRs are required. Each meaningful item needs an owner, branch, scope, focused files/docs, files/docs to avoid, validation, and done-when criteria. Add `docs/collaboration.md` during setup or before the first group work item. Solo long-running branches: recommended.
+For group work, Issues and Draft PRs are required. Each meaningful item needs an owner, branch, scope, focused files/docs, files/docs to avoid, validation, and done-when criteria. Add `docs/collaboration.md` during setup or before the first group work item. Solo long-running branches are recommended.
 
-Coding agents should check active Issues, PRs, and related branches before coding when Issue/PR tracking is in use. If another active branch appears to touch the same files or systems, they should stop and report the possible overlap before editing.
+Coding agents should check active Issues, PRs, and related branches before coding when work may overlap another branch. If another active branch appears to touch the same files or systems, they should stop and report the possible overlap before editing.
 
 ## Coding-agent handoff expectations
 
-Coding-agent handoffs should include:
+Coding-agent handoffs should include: goal, linked Issue or work item when available, source-of-truth docs to inspect, readiness gate, scope, non-goals, files likely to change, acceptance criteria, validation expectations, documentation expectations, stop conditions, and final reporting expectations.
 
-- goal
-- source-of-truth docs to inspect
-- readiness gate
-- scope
-- non-goals
-- files likely to change
-- acceptance criteria
-- validation expectations
-- documentation expectations
-- stop conditions
-- final reporting expectations
+When Issue/PR tracking is in use, also include owner, linked Issue or assigned work item, branch, focused files/docs, files or systems to avoid, and Draft PR expectations when applicable.
 
-When Issue/PR tracking is in use, also include:
-
-- owner
-- linked Issue or assigned work item
-- branch
-- focused files/docs
-- files, docs, or systems to avoid
-- Draft PR expectations when applicable
-
-Do not restate all project context when the repo docs already contain it. Keep handoffs copy-paste ready.
+Do not restate all project context when the repo docs and linked Issue already contain it. Keep handoffs copy-paste ready.
 
 ## Documentation freshness
 
-The coding agent owns documentation freshness during implementation. Every implementation should update `docs/current-task.md` when current status, next task, validation, or active branch changes. Update campaign docs when slice status changes. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
+The coding agent owns documentation freshness during implementation. Every implementation should update `docs/current-task.md` when current status, next task, validation, active Issue/PR, or active branch changes. Update linked Issues/PRs when status, scope, validation, docs delta, or follow-ups change. Update architecture or roadmap docs only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
 
-Every coding-agent final report should include a documentation delta that says which docs changed and why. When Issue/PR tracking is in use, the PR summary should also include the documentation delta before the PR is marked ready for review.
+Every coding-agent final report should include a documentation delta that says which docs, Issues, or PRs changed and why. When Issue/PR tracking is in use, the PR summary should include the documentation delta before the PR is marked ready for review.
 
-ChatGPT should inspect repo docs at the target branch whenever current state matters. Prior chat context and final reports are orientation only; repo docs remain authoritative.
+ChatGPT should inspect repo docs at the target branch whenever current state matters. Prior chat context and final reports are orientation only; repo docs, Issues, and PRs remain authoritative.
 
 ## ChatGPT behavior
 
