@@ -98,6 +98,7 @@ def find_liquid_sensitive_template_lines(markdown: str) -> list[str]:
 def main() -> int:
     html = HTML_FILE.read_text(encoding="utf-8")
     markdown = MD_FILE.read_text(encoding="utf-8")
+    primer = PRIMER_FILE.read_text(encoding="utf-8") if PRIMER_FILE.exists() else ""
     parser = GuideParser()
     parser.feed(html)
     text = "\n".join(parser.text_parts)
@@ -118,8 +119,11 @@ def main() -> int:
     setup_hrefs = parser.nav_groups.get("One-time setup", [])
     reference_hrefs = parser.nav_groups.get("Reference material", [])
     check("#loop-step-a-ground-a-new-chatgpt-chat-in-the-repo" in implementation_hrefs, "Loop Step A is grouped under Implementation loop", failures)
+    check("#loop-step-b-plan-or-refine-the-next-github-issue" in implementation_hrefs, "Loop Step B Issue planning is grouped under Implementation loop", failures)
     check("#stage-2a-optional-codex-worktrees" in setup_hrefs, "Stage 2A worktrees is grouped under One-time setup", failures)
     check("#reference-material" in reference_hrefs, "Reference material top-level section is grouped under Reference material", failures)
+    check("#issue-first-backlog-and-pr-tracking" in reference_hrefs, "Issue-first backlog is grouped under Reference material", failures)
+    check("#issue-body-shape" in reference_hrefs, "Issue body shape is grouped under Reference material", failures)
     check("#optional-codex-worktrees" in reference_hrefs, "Optional Codex worktrees is grouped under Reference material", failures)
     check("Other sections" not in parser.nav_groups, "Other sections sidebar group is absent", failures)
     check("Appendices" not in parser.nav_groups, "empty Appendices sidebar group is absent", failures)
@@ -135,6 +139,12 @@ def main() -> int:
     check("llm_coding_workflow_diagram.png" in html, "diagram uses external PNG reference", failures)
     check("docs/project-state.json" not in html, "docs/project-state.json references absent", failures)
     check("State packet" not in text and "state packet" not in text, "state packet references absent", failures)
+
+    retired_campaign_doc_terms = ["docs/campaigns/*.md", "campaign document", "Campaign doc"]
+    retired_present = [term for term in retired_campaign_doc_terms if term in html or term in markdown or term in primer]
+    check(not retired_present, "retired campaign doc workflow references absent", failures)
+    check("Issue-first backlog" in text, "Issue-first backlog guidance exists", failures)
+    check("Issue body shape" in text, "Issue body shape exists", failures)
 
     liquid_sensitive_lines = find_liquid_sensitive_template_lines(markdown)
     check(not liquid_sensitive_lines, "Liquid-sensitive bare double-brace code fragments absent", failures)
@@ -168,7 +178,6 @@ def main() -> int:
         print("WARN: node not available; skipped JavaScript syntax check")
 
     if PRIMER_FILE.exists():
-        primer = PRIMER_FILE.read_text(encoding="utf-8")
         check(len(primer) < 6000, "compact primer remains concise", failures)
 
     if failures:
