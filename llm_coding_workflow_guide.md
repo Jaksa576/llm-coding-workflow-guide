@@ -8,7 +8,7 @@ In five seconds:
 2. The GitHub repo and repo docs are the source of truth.
 3. The coding agent implements one clear slice at a time.
 4. The user reviews, QA checks, and decides whether to merge, patch, revise, or stop.
-5. The loop repeats through campaigns, slices, patches, and docs updates.
+5. The loop repeats through GitHub Issues, reviewable slices, patches, PRs, and docs updates.
 
 ![LLM Coding Workflow](llm_coding_workflow_diagram.png)
 
@@ -38,8 +38,8 @@ If your planning LLM and coding agent have similar costs and context behavior, y
 4. Define the project, generate app-specific instructions, and create core repo docs.
 5. Add `docs/collaboration.md` if this is a group repo or overlapping branch work is likely.
 6. Bootstrap the project with a coding-agent handoff.
-7. Repeat the main loop: plan work -> generate handoff -> implement -> validate -> update docs -> final report -> QA -> merge, patch, revise, or stop.
-8. Close out campaigns, clean stale context from the hot path, and start a new chat for the next phase when useful.
+7. Repeat the main loop: plan or refine a GitHub Issue -> generate handoff -> implement -> validate -> update docs/Issue/PR -> final report -> QA -> merge, patch, revise, split follow-ups, or stop.
+8. Close or update the Issue/PR, clean stale context from the hot path, and start a new chat for the next Issue or phase when useful.
 
 Most time is spent in the implementation loop, not setup.
 
@@ -120,7 +120,8 @@ Please verify whether you can inspect these files from the configured GitHub rep
 - docs/roadmap.md
 - docs/current-task.md
 - docs/collaboration.md when group work is active
-- active docs/campaigns/*.md if relevant
+- active GitHub Issues and PRs when planning, implementing, reviewing, or checking overlap
+- active docs/design/*.md when a specific design decision is relevant
 
 Rules:
 - Inspect the target branch before using prior chat state.
@@ -210,7 +211,7 @@ The ChatGPT Project will include the compact LLM workflow primer as a source fil
 
 Instructions architecture:
 - Project Instructions should be app-specific and concise.
-- The workflow primer covers campaign/slice/patch workflow, documentation freshness, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.
+- The workflow primer covers Issue/slice/patch workflow, documentation freshness, documentation deltas, current-state refresh behavior, and prompt-manager placeholder style.
 - Repo docs are the source of truth for product, architecture, roadmap, and current task. When connector access is available, inspect repo docs at the target branch before asking for pasted docs.
 
 Environment:
@@ -425,7 +426,7 @@ Please do the following:
 2. identify blocking setup issues
 3. list what I should manually QA now
 4. recommend whether to merge, patch, or hold
-5. if ready, recommend the first implementation campaign or standalone slice
+5. if ready, recommend the first implementation Issue or standalone slice
 6. if ready, summarize what the next work item should accomplish
 
 ```
@@ -433,11 +434,11 @@ Please do the following:
 
 # Main implementation loop
 
-Start a new ChatGPT chat at the beginning of a new campaign or major phase. Ask ChatGPT to inspect repo docs at the target branch when current state matters.
+Start a new ChatGPT chat at the beginning of a major phase, a new implementation-ready Issue, or whenever context feels stale. Ask ChatGPT to inspect repo docs, active Issues, and active PRs at the target branch when current state matters.
 
 ## Loop Step A - Ground a new ChatGPT chat in the repo
 
-Use this at the start of a new ChatGPT chat, after campaign closeout, or whenever the chat context feels stale. This step is only for grounding. Do not plan new work here; use Step B or Step C for that.
+Use this at the start of a new ChatGPT chat, after closing a meaningful Issue/PR, or whenever the chat context feels stale. This step is only for grounding. Do not plan new work here; use Step B or Step C for that.
 
 ```md
 I am starting a new ChatGPT chat for an existing project.
@@ -452,82 +453,83 @@ Please re-establish context by inspecting repo docs at the target branch:
 - docs/roadmap.md
 - docs/current-task.md
 - docs/collaboration.md when group work is active
-- active docs/campaigns/*.md if relevant
+- active GitHub Issues and PRs when planning, implementing, reviewing, or checking overlap
+- active docs/design/*.md when a specific design decision is relevant
 
 Rules:
-- Treat repo docs as authoritative.
+- Treat repo docs, Issues, and PRs as authoritative for current state.
 - Do not rely on memory from prior chats.
-- If connector access is unavailable, ask me for only the smallest missing file.
-- If docs conflict, call out the conflict before recommending next steps.
+- If connector access is unavailable, ask me for only the smallest missing file or GitHub item.
+- If docs, Issues, or PRs conflict, call out the conflict before recommending next steps.
 
-After reading the docs, summarize:
+After reading the docs and relevant GitHub items, summarize:
 1. current product direction
 2. current architecture/state
-3. active work item or campaign
+3. active Issue/PR or current task
 4. next action according to docs/current-task.md
-5. any doc conflicts or stale areas
+5. any doc, Issue, or PR conflicts or stale areas
 ```
 
-## Loop Step B - Plan the next work item
+## Loop Step B - Plan or refine the next GitHub Issue
 
-Use this for a campaign, a standalone slice, or a patch. Campaign planning is part of the repeatable loop, not just first-time setup.
+Use this for backlog capture, implementation-ready Issue planning, a standalone slice, or a patch. GitHub Issues are the default durable place for future implementation items and detailed work contracts. The roadmap stays broader and more strategic.
 
 ```md
-Before planning, do a fresh source-of-truth check using repo docs at the target branch.
+Before planning, do a fresh source-of-truth check using repo docs and relevant GitHub Issues/PRs at the target branch.
 
 Target branch:
 {{target branch}}
 
 Work mode:
-{{type of work to plan: Campaign, Single slice, or Patch}}
+{{Backlog Issue, Implementation-ready Issue, Standalone slice, or Patch}}
 
 Current objective:
 {{what you want to accomplish}}
 
 Additional context:
-{{anything important that  not already in repo docs, or write "none"}}
+{{anything important that is not already in repo docs or Issues, or write "none"}}
 
-Please inspect the configured GitHub repo at the target branch, or ask me for only the smallest missing file if connector access is unavailable:
+Please inspect the configured GitHub repo at the target branch, or ask me for only the smallest missing file or GitHub item if connector access is unavailable:
 - AGENTS.md
 - docs/product.md
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
 - docs/collaboration.md when group work is active
-- active docs/campaigns/*.md if relevant
+- active GitHub Issues and PRs when planning, implementing, reviewing, or checking overlap
+- active docs/design/*.md when a specific design decision is relevant
 
 First, recommend the Issue/PR tracking level for this work:
-- not needed
-- optional
-- recommended
-- required
+- backlog Issue only
+- implementation-ready Issue recommended
+- Issue + Draft PR recommended
+- Issue + Draft PR required
 
 Use this rule:
-- Tiny same-session patch: no Issue/PR needed.
-- Small solo slice: optional.
-- Campaign, multi-day branch, worktree, project switching, risky architecture/product change, or group work: Issue + Draft PR recommended.
+- Tiny same-session patch: no Issue needed unless it should be remembered.
+- Future implementation idea: create or refine a backlog Issue.
+- Meaningful feature, multi-step slice, multi-day branch, worktree, project switching, risky architecture/product change, or group work: use an implementation-ready Issue.
 - Group work: Issue + Draft PR required.
 
-If Issue/PR tracking is recommended or required, include the Issue scope and Draft PR expectations inside the normal plan. Do not create a separate Issue/PR decision workflow.
-
-For group work, also include owner, branch, focused files/docs, files/docs or systems to avoid, reviewer expectations, and where durable discussion should be recorded.
-
-If Work mode is CAMPAIGN, produce a campaign document with:
+If this should become or update a GitHub Issue, draft the Issue body with:
 1. objective and target state
 2. current state and source-of-truth notes
 3. scope and non-goals
-4. slice plan
-5. acceptance criteria per slice
+4. implementation slices/checklist when useful
+5. acceptance criteria
 6. validation and manual QA expectations
-7. stop conditions and campaign completion criteria
-8. follow-up backlog
+7. docs update expectations
+8. risks and stop conditions
+9. follow-up backlog
+10. PR expectations when implementation starts
 
-If Work mode is SINGLE_SLICE, produce a concise implementation plan with:
+If Work mode is STANDALONE_SLICE, produce a concise implementation plan with:
 1. goal and scope
 2. non-goals
 3. acceptance criteria
 4. validation and docs update expectations
 5. stop conditions
+6. whether the slice should be captured as an Issue
 
 If Work mode is PATCH, produce a narrow patch plan with:
 1. issues to fix and expected behavior
@@ -535,43 +537,45 @@ If Work mode is PATCH, produce a narrow patch plan with:
 3. acceptance criteria
 4. validation expectations
 5. risks
+6. whether this should update an existing Issue/PR or create a follow-up Issue
 
-The plan should support large swaths when appropriate, but keep each implementation step independently reviewable.
+The plan should support larger features when appropriate, but keep each implementation step independently reviewable.
 ```
 
 ## Loop Step C - Generate the next LLM agent handoff
 
-Use this for a campaign slice, standalone slice, or patch. The prompt intentionally does not ask for the repo URL because the ChatGPT Project Instructions should already contain it. Branch context still matters.
+Use this for an Issue implementation, standalone slice, or patch. The prompt intentionally does not ask for the repo URL because the ChatGPT Project Instructions should already contain it. Branch context still matters.
 
 ```md
-Before creating the handoff, do a fresh source-of-truth check using repo docs at the target branch.
+Before creating the handoff, do a fresh source-of-truth check using repo docs and relevant GitHub Issues/PRs at the target branch.
 
 Target branch:
 {{target branch}}
 
 Work type:
-{{type of handoff: Campaign slice, Standalone slice, or Patch}}
+{{Issue implementation, Standalone slice, or Patch}}
 
-Work item to implement:
-{{active campaign doc, slice or patch name}}
+Linked Issue or work item:
+{{GitHub Issue number/title, Issue draft, or patch description}}
 
 Task context:
-{{any context LLM agent needs beyond the repo docs, or write "none"}}
+{{any context LLM agent needs beyond the repo docs and linked Issue, or write "none"}}
 
-Please inspect the configured GitHub repo at the target branch, or ask me for only the smallest missing file if connector access is unavailable:
+Please inspect the configured GitHub repo at the target branch, or ask me for only the smallest missing file or GitHub item if connector access is unavailable:
 - AGENTS.md
 - docs/product.md
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
 - docs/collaboration.md when group work is active
-- the active campaign doc if applicable
+- linked Issue or Issue draft, if applicable
+- active PR for the branch, if applicable
 
 Then create a lean LLM agent-ready handoff containing only what LLM agent needs for this task.
 
 If Issue/PR tracking is in use, include:
 - owner
-- linked Issue or Issue draft
+- linked Issue or assigned work item
 - branch
 - focused files/docs
 - files/docs/systems to avoid
@@ -581,6 +585,7 @@ When Issue/PR tracking is in use, the readiness gate must also require LLM agent
 
 A normal handoff should include:
 - goal
+- linked Issue or work item when available
 - source-of-truth docs to inspect
 - readiness gate
 - context specific to this task
@@ -596,32 +601,41 @@ A normal handoff should include:
 Rules:
 - Do not include a standard project/repository/header block by default.
 - Only mention repo, target branch, environment, or worktree details if they are not obvious or the task depends on them.
-- Do not restate the entire product or campaign if the repo docs already cover it.
+- Do not restate the entire product or Issue if the repo docs and linked Issue already cover it.
 - Do not include command-by-command setup unless explicitly needed.
 - Keep the handoff copy-paste ready.
 - Prefer repo-owned standard commands from `AGENTS.md`, package scripts, or `scripts/` for setup, validation, and branch verification.
 - If the repo provides a branch-push verification script and the work uses a worktree, include it in validation or final-report expectations.
-- Do not create extra active-context files just to repeat the handoff; the handoff is the active execution packet and repo docs are durable truth.
-- Do not add a standalone Issue/PR decision prompt; Issue/PR tracking is conditional context inside the normal handoff.
+- Do not create extra active-context files just to repeat the handoff; the handoff is the active execution packet and repo docs/Issues are durable truth.
 ```
 
 ## Loop Step D - Let LLM agent implement
 
 In LLM agent:
 
-1. Start a fresh LLM agent thread/worktree for each campaign slice or standalone implementation branch.
+1. Start a fresh LLM agent thread/worktree for each Issue implementation or standalone implementation branch.
 2. Reuse the same branch/thread only for focused patch corrections to the same implementation.
 3. Paste the handoff.
-4. For group work, have LLM agent confirm the linked Issue or Draft PR, branch owner, and overlap check before editing. Do not implement directly on `main` unless the repo explicitly allows it for this task.
-5. Let LLM agent inspect docs, implement, validate, update docs, commit, push, and verify the branch is pushed when a repo helper exists.
+4. For group work or overlapping branch risk, have LLM agent confirm the linked Issue or Draft PR, branch owner, and overlap check before editing. Do not implement directly on `main` unless the repo explicitly allows it for this task.
+5. Let LLM agent inspect docs, linked Issue/PR, implement, validate, update docs/Issues/PRs, commit, push, and verify the branch is pushed when a repo helper exists.
 6. If Issue/PR tracking is in use, let LLM agent open or update the Draft PR when possible and include PR status in the final report.
 7. Copy LLM agent's final report back into ChatGPT.
+
+A meaningful feature implementation usually follows this path:
+
+1. Issue defines scope and done-when criteria.
+2. Branch implements the Issue.
+3. Draft PR tracks implementation progress and validation.
+4. PR is marked ready after validation and docs updates.
+5. User QA decides merge, patch, revise, or stop.
+6. Linked Issue is closed, updated, or split into follow-up Issues.
 
 A good LLM agent final report must include:
 
 - branch
 - commit
 - pushed remote branch, when work was done on a branch or worktree
+- linked Issue status, when Issue tracking is in use
 - Draft PR status, when Issue/PR tracking is in use
 - owner and overlap-check result, when group work is active
 - branch-push verification result, when the repo provides a verification script
@@ -633,7 +647,6 @@ A good LLM agent final report must include:
 
 ## Loop Step E - QA and decide merge or patch
 
-
 ```md
 Help me review this completed implementation.
 
@@ -641,7 +654,10 @@ Branch:
 {{target branch:}}
 
 Work type:
-{{type of work to be completed: Campaign slice, Standalone slice, or Patch}}
+{{type of work completed: Issue implementation, Standalone slice, or Patch}}
+
+Linked Issue or PR:
+{{GitHub Issue/PR number or title, or write "none"}}
 
 LLM agent final report:
 {{LLM implementation notes:}}
@@ -650,17 +666,15 @@ My rough QA notes:
 {{rough QA notes:}}
 
 Please do the following:
-1. assess whether the work appears aligned with the campaign, roadmap, or slice plan
+1. assess whether the work appears aligned with the linked Issue, roadmap, or slice plan
 2. clean up my QA notes into clear issues
-3. classify each issue as blocker, follow-up patch, campaign backlog, later, or reject
+3. classify each issue as blocker, follow-up patch, Issue follow-up, new Issue, later roadmap, or reject
 4. identify what should change before merge, if anything
-5. if Issue/PR tracking is in use, identify what should be updated in the Issue or PR before review, patch, merge, or closeout
+5. identify what should be updated in the Issue or PR before review, patch, merge, or closeout
 6. tell me exactly what to manually QA
-7. recommend one of: merge, narrow patch, revise plan/campaign, or abandon branch
+7. recommend one of: merge, narrow patch, revise Issue scope, split follow-up Issues, or abandon branch
 8. if a patch is needed, create a lean LLM agent-ready patch handoff
-
 ```
-
 
 ## Loop Step F - Patch when needed
 
@@ -670,13 +684,16 @@ Create a narrow LLM agent-ready patch handoff.
 Branch to patch:
 {{target branch:}}
 
+Linked Issue or PR:
+{{GitHub Issue/PR number or title, or write "none"}}
+
 Issues to fix:
 {{list of issues this patch should fix:}}
 
 Additional context:
-{{anything LLM agent needs that is not already in repo docs, or write "none":}}
+{{anything LLM agent needs that is not already in repo docs, Issue, or PR, or write "none":}}
 
-Please inspect repo docs at the target branch if current state matters. Then generate a concise patch handoff with:
+Please inspect repo docs and the linked Issue/PR at the target branch if current state matters. Then generate a concise patch handoff with:
 1. goal
 2. source-of-truth docs to inspect
 3. scope
@@ -689,13 +706,14 @@ Please inspect repo docs at the target branch if current state matters. Then gen
 Rules:
 - Only fix the listed issues.
 - Do not redesign adjacent flows.
-- Do not start the next campaign slice unless explicitly requested.
+- Do not start the next Issue or slice unless explicitly requested.
 - Do not change schema/auth/deployment unless required and reported first.
 - Do not rewrite unrelated code.
 
 Final report must include:
 - branch
 - commit
+- linked Issue/PR updates, if applicable
 - files changed
 - validation results
 - documentation delta
@@ -705,9 +723,9 @@ Final report must include:
 Keep this handoff short and copy-paste ready.
 ```
 
-## Loop Step G - Close the campaign or phase
+## Loop Step G - Close the Issue, PR, or phase
 
-When a campaign or major phase is complete, close it out, update docs, and usually start a new ChatGPT chat for the next campaign or phase.
+When an Issue, PR, or major phase is complete, close it out, update docs, and usually start a new ChatGPT chat for the next Issue or phase.
 
 ```md
 Help me close out this work item and prepare the project for the next stage.
@@ -716,50 +734,90 @@ Target branch:
 {{target branch:}}
 
 Work item to close:
-{{name of campaign, slice, patch, or phase is being closed out:}}
+{{name of Issue, PR, slice, patch, or phase being closed out:}}
 
 Known remaining issues:
-{{any outstanding inssues, or write "none":}}
+{{any outstanding issues, or write "none":}}
 
-Please do a fresh source-of-truth check using repo docs at the target branch. If connector access is unavailable, ask me for only the smallest missing file from:
+Please do a fresh source-of-truth check using repo docs and relevant GitHub Issues/PRs at the target branch. If connector access is unavailable, ask me for only the smallest missing file or GitHub item from:
 - AGENTS.md
 - docs/product.md
 - docs/architecture.md
 - docs/roadmap.md
 - docs/current-task.md
 - docs/collaboration.md when group work is active
-- active campaign doc if relevant
+- linked Issue or PR if relevant
 
 Then recommend:
 1. whether the work item appears complete
 2. what docs should be updated
-3. what old context should be archived or removed from the hot path
+3. what old context should be removed from the hot path
 4. what docs/current-task.md should say next
-5. whether any Issue or PR should be closed, updated, left as draft, or marked ready for review
-6. whether the next step should be a patch, new campaign, standalone slice, production hardening, or pause
-7. whether I should start a new ChatGPT chat for the next phase
-8. a LLM agent-ready docs-update handoff if needed
+5. whether the linked Issue should be closed, updated, split, or left open
+6. whether the PR should be merged, patched, closed, updated, or marked ready for review
+7. whether roadmap should change because scope or sequencing changed
+8. whether the next step should be a patch, new Issue, standalone slice, production hardening, or pause
+9. whether I should start a new ChatGPT chat for the next Issue or phase
+10. a LLM agent-ready docs-update handoff if needed
 ```
 
 # Reference material
 
 Use this section when the main workflow points you to supporting material. It is deliberately shorter than the old appendices: the main workflow stays actionable, and reference material stays available without becoming a second manual.
 
-## Lightweight Issue and PR tracking
+## Issue-first backlog and PR tracking
 
-Issues and PRs are optional tracking tools, not the workflow. Use them when they make the existing loop easier to coordinate, review, or resume.
+GitHub Issues are the default durable tracking layer for future implementation work. Use them for specific backlog items, implementation-ready work, active work contracts, follow-ups, and ideas you do not want buried in chat.
 
-Skip Issue/PR tracking for tiny same-session patches. Use it for campaigns, multi-day branches, worktrees, project switching, risky architecture or product changes, and group work. For solo campaigns or long-running branch work, Issue + Draft PR tracking is recommended. For group work, Issues and Draft PRs are required.
+PRs are the implementation and review record for a branch. A meaningful feature normally starts as an Issue, moves to a branch and Draft PR during implementation, then closes or updates the linked Issue after QA and merge.
 
 Keep the roles distinct:
 
-- Roadmap = strategic sequence and deferred work.
-- `docs/current-task.md` = main current project pointer.
-- Campaign doc = multi-slice plan and status.
-- Issue = active work contract.
+- Roadmap = strategic sequence, milestones, and broader deferred themes.
+- GitHub Issue = specific backlog item, implementation contract, or follow-up.
 - Draft PR = active branch and review record.
+- `docs/current-task.md` = short current project pointer, including active Issue/PR when useful.
 - Discord/chat = discussion, not durable truth.
 - `docs/collaboration.md` = reusable group rules when branch ownership, review expectations, or overlap checks need to be explicit.
+
+Use Issues by default for future implementation ideas, multi-step features, project switching, worktrees, risky architecture or product changes, and group work. Tiny same-session patches can skip Issues unless the decision or follow-up needs to be remembered.
+
+For solo projects, this can stay lightweight: one clear Issue and one PR is enough for most meaningful work. For group work, Issues and Draft PRs are required.
+
+## Issue body shape
+
+Use this as the default shape when ChatGPT drafts an implementation-ready GitHub Issue.
+
+```md
+Goal:
+{{what should change}}
+
+Why:
+{{user/product value}}
+
+Scope:
+- {{included work}}
+
+Non-goals:
+- {{excluded work}}
+
+Implementation notes:
+- {{known files, APIs, routes, docs, or constraints}}
+
+Acceptance criteria:
+- {{what must be true}}
+
+Validation:
+- {{tests, build, preview, or manual QA}}
+
+Docs update expectations:
+- {{docs/current-task.md, architecture, roadmap, or none}}
+
+PR expectations:
+- Branch: {{branch name or naming convention}}
+- Draft PR until validation is complete
+- Link this Issue in the PR body
+```
 
 ## Group repo mode
 
@@ -780,11 +838,11 @@ For solo projects, keep this lightweight. Use Issue/PR tracking for multi-day br
 
 ## Keep repo docs fresh
 
-Use `docs/current-task.md` as the active work pointer for current status and next action.
+Use `docs/current-task.md` as the active work pointer for current status and next action. Keep it concise: it should point to the active Issue/PR instead of copying the full Issue or final report.
 
-LLM agent should update `docs/current-task.md` after every implementation. Update campaign docs when slice status changes. Update `docs/architecture.md` or `docs/roadmap.md` only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
+LLM agent should update `docs/current-task.md` after every implementation when current status, next action, active branch, active Issue, or active PR changes. Update linked Issues/PRs when scope, status, validation, documentation delta, or follow-ups change. Update `docs/architecture.md` or `docs/roadmap.md` only when the work changes architecture, routes, services, deployment, milestone status, scope, or sequencing.
 
-ChatGPT should inspect repo docs at the target branch whenever current state matters. For group work, active Issues, PRs, related remote branches, and `docs/collaboration.md` are part of the current-state check. Chat memory and prior final reports are orientation only; repo docs are authoritative.
+ChatGPT should inspect repo docs at the target branch whenever current state matters. For group work or overlap risk, active Issues, PRs, related remote branches, and `docs/collaboration.md` are part of the current-state check. Chat memory and prior final reports are orientation only; repo docs, Issues, and PRs are authoritative.
 
 Golden rules:
 
@@ -792,7 +850,7 @@ Golden rules:
 2. Current-state checks beat chat memory.
 3. Keep LLM agent handoffs lean and task-specific.
 4. Prefer reviewable slices over vague large changes.
-5. LLM agent updates docs after implementation.
+5. LLM agent updates docs, Issues, and PRs after implementation when status changes.
 6. The user approves product direction, QA judgment, and merge decisions.
 7. Remove stale detail from the hot path instead of letting it bury the next action.
 
@@ -803,11 +861,10 @@ Every LLM agent final report should include a documentation delta.
 ```md
 Documentation delta:
 - docs/current-task.md: {{Summarize what changed in docs/current-task.md}}
-- campaign doc, if applicable: {{Summarize what changed, or write 'not applicable'}}
+- linked Issue/PR, if applicable: {{Summarize what changed, or write 'not applicable'}}
 - docs/architecture.md: {{Summarize what changed, or write 'not applicable'}}
 - docs/roadmap.md: {{Summarize what changed, or write 'not applicable'}}
 ```
-
 
 ## Token-efficient repo helpers
 
@@ -837,7 +894,7 @@ Default to a **clean project switch** whenever possible: finish or pause at a sa
 
 Use three switch types:
 
-- **Clean project switch:** the normal path. Use this when the current slice, patch, or checkpoint is committed and pushed.
+- **Clean project switch:** the normal path. Use this when the current Issue, slice, patch, or checkpoint is committed and pushed.
 - **Mid-task switch:** use only when you must move computers before work is complete. Commit only meaningful checkpoint work, and provide a short passoff in ChatGPT, the LLM agent final report, or another temporary note.
 - **Remote or cloud coding-agent switch:** optional. Use this only when work is already running in a supported remote or cloud coding-agent environment.
 
@@ -861,7 +918,7 @@ git push -u origin {{Branch name}}
 .\scripts\verify-branch-pushed.ps1
 ```
 
-Do not create a new repo file just because you are switching computers. If the project is mid-campaign and the next action would otherwise be unclear, provide a short passoff in ChatGPT or include it with the LLM agent final report. Update `docs/current-task.md` only when the actual project state or next action changed.
+Do not create a new repo file just because you are switching computers. If the project is mid-Issue and the next action would otherwise be unclear, provide a short passoff in ChatGPT or include it with the LLM agent final report. Update `docs/current-task.md` only when the actual project state or next action changed.
 
 On the new computer, rebuild local state from GitHub:
 
@@ -926,7 +983,8 @@ Please inspect:
 - docs/product.md
 - docs/architecture.md
 - docs/roadmap.md
-- active docs/campaigns/*.md if relevant
+- active GitHub Issues and PRs when planning, implementing, reviewing, or checking overlap
+- active docs/design/*.md when a specific design decision is relevant
 
 Then confirm:
 1. current branch
@@ -940,7 +998,7 @@ Do not change files yet. Stop after reporting readiness.
 
 ## Docs health check
 
-Run a docs health check after a campaign, before a major campaign, or whenever docs seem stale. Do not make this a weekly chore unless the project is moving quickly.
+Run a docs health check after a meaningful Issue/PR, before a major phase, or whenever docs seem stale. Do not make this a weekly chore unless the project is moving quickly.
 
 ```md
 Create a LLM agent-ready docs health check handoff.
@@ -961,7 +1019,8 @@ Read first from repo docs at the target branch:
 - docs/roadmap.md
 - docs/current-task.md
 - docs/collaboration.md when group work is active
-- active docs/campaigns/*.md if relevant
+- active GitHub Issues and PRs when planning, implementing, reviewing, or checking overlap
+- active docs/design/*.md when a specific design decision is relevant
 - recent git history
 
 Scope:
@@ -970,14 +1029,14 @@ Documentation only. Do not implement app features.
 Tasks:
 1. Identify stale, conflicting, or bloated docs.
 2. Update docs/current-task.md so it reflects current status and next action.
-3. Update the active campaign doc only if slice or campaign status is stale.
+3. Update the active Issue doc only if slice or Issue/PR status is stale.
 4. Update docs/architecture.md only if architecture changed.
 5. Update docs/roadmap.md only if roadmap status changed.
 6. Remove obsolete detail from hot-path docs when it clearly no longer helps current work.
 7. Preserve uncertainty instead of guessing.
 
 Validation:
-- Confirm docs agree on the active campaign or active work item.
+- Confirm docs agree on the active Issue, PR, or work item.
 - Confirm current status and next action are clear.
 - Report unresolved conflicts.
 
@@ -1008,7 +1067,8 @@ Please inspect repo docs at the target branch for the latest versions of:
 - docs/roadmap.md
 - docs/current-task.md
 - docs/collaboration.md when group work is active
-- active docs/campaigns/*.md if relevant
+- active GitHub Issues and PRs when planning, implementing, reviewing, or checking overlap
+- active docs/design/*.md when a specific design decision is relevant
 
 Rules:
 - Do not rely on memory or prior chat assumptions.
@@ -1023,7 +1083,7 @@ After the source-of-truth check, answer my request:
 
 ## Computer switch check prompt
 
-Use this before moving active work to another computer, especially during a campaign or patch.
+Use this before moving active work to another computer, especially during an Issue implementation or patch.
 
 ```md
 Help me safely switch computers for this project.
@@ -1052,7 +1112,7 @@ Please help me:
 
 ## Minimal LLM agent handoff shape
 
-Use this as the default structure for normal campaign slices, standalone slices, and patches. Add repo, branch, environment, or worktree details only when the task depends on them or when they are not already configured in LLM agent.
+Use this as the default structure for normal Issue implementations, standalone slices, and patches. Add repo, branch, environment, or worktree details only when the task depends on them or when they are not already configured in LLM agent.
 
 ```md
 Goal:
@@ -1065,7 +1125,7 @@ Read first:
 - docs/roadmap.md
 - docs/current-task.md
 - docs/collaboration.md, if group work is active
-- {{Active campaign doc, if applicable}}
+- {{Linked Issue or Issue draft, if applicable}}
 
 Readiness gate:
 Before coding, confirm the docs, target branch, and requested scope agree. If they conflict, stop and report the conflict.
@@ -1084,7 +1144,7 @@ Validation:
 - Prefer the repo's standard validation command or script when present, such as `npm run check` or `.\scripts\validate.ps1`.
 
 Documentation delta:
-Update docs/current-task.md and any campaign, architecture, or roadmap docs affected by the work.
+Update docs/current-task.md and any linked Issue, PR, architecture, or roadmap docs affected by the work.
 
 Stop conditions:
 Stop and report before making unrelated architecture, schema, auth, deployment, or scope changes.
@@ -1106,10 +1166,10 @@ The workflow uses a small source-of-truth doc set. Keep these docs concise and c
 - `AGENTS.md` defines coding-agent rules, repo conventions, validation expectations, and documentation update expectations. Update it when agent behavior or repo conventions change.
 - `docs/product.md` defines the product goal, target user, MVP, non-goals, and product decisions. Update it when product direction changes.
 - `docs/architecture.md` defines the technical approach, important routes/services/data flows, deployment assumptions, and constraints. Update it when architecture changes.
-- `docs/roadmap.md` defines milestones, sequencing, campaign backlog, and deferred work. Update it when scope or order changes.
+- `docs/roadmap.md` defines milestones, sequencing, major deferred themes, and strategic backlog categories. Update it when scope, order, or milestone status changes.
 - `docs/current-task.md` defines current status and the next action. Update it after every implementation.
 - `docs/collaboration.md` defines branch ownership, Issue/PR, review, and overlap-check expectations when group work is active. Keep it optional for solo repos.
-- `docs/campaigns/*.md` tracks active multi-slice efforts. Update the active campaign doc when slice status, acceptance criteria, or follow-up backlog changes.
+- GitHub Issues track specific backlog items, implementation-ready work, active work contracts, and follow-ups. PRs track branch implementation, validation, documentation delta, QA notes, and merge readiness.
 - `docs/design/*.md` can hold active design notes for complex product, UX, data, or architecture decisions. Use it only when a decision is too large for the hot-path docs.
 
 ## Optional Codex worktrees
@@ -1339,8 +1399,9 @@ Remove-Item -Recurse -Force .next,node_modules,coverage,playwright-report,test-r
 - **Planning LLM:** The conversational model used for strategy, planning, QA triage, and handoff generation.
 - **Coding agent:** The tool that works directly in the repo to edit files, run checks, commit, and push.
 - **Source-of-truth docs:** The repo docs that define current product, architecture, roadmap, and active work.
-- **Campaign:** A large swath of related work broken into reviewable slices.
-- **Slice:** One independently reviewable implementation unit inside a campaign or standalone effort.
+- **Issue:** A repo-native backlog item or implementation contract for a specific future or active work item.
+- **Pull request:** The branch review record that implements an Issue or patch and captures validation, documentation delta, QA notes, and merge readiness.
+- **Slice:** One independently reviewable implementation unit inside an Issue or standalone effort.
 - **Patch:** A narrow correction to a specific branch or issue.
 - **Bootstrap:** The first implementation run that creates the working shell, validation path, and initial deploy/run setup.
 - **Readiness gate:** The pre-coding check that confirms docs, branch, and scope agree before implementation.
@@ -1363,7 +1424,7 @@ Recommended prompt groups:
 
 - Project setup prompts
 - Current-state check prompts
-- Campaign and slice planning prompts
+- Issue and slice planning prompts
 - Codex handoff prompts
 - QA review prompts
 - Patch prompts
