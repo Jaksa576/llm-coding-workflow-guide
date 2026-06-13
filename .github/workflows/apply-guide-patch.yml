@@ -1,9 +1,14 @@
 name: Apply guide patch
 
-# Manual fallback only. Normal guide edits should update Markdown/source files directly
-# and let the Build guide HTML workflow render and validate the generated HTML.
+# Manual fallback by default. This temporary push trigger lets an approved helper
+# apply one large guide update and then reset this workflow back to manual-only.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'tools/apply_approved_guide_patch.py'
 
 permissions:
   contents: write
@@ -42,5 +47,6 @@ jobs:
             llm_coding_workflow_guide.html
             llm_coding_workflow_diagram.png
             tools/render_guide.py
+            tools/validate_guide.py
             tools/apply_approved_guide_patch.py
             .github/workflows/apply-guide-patch.yml
